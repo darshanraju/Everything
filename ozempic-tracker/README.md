@@ -49,13 +49,16 @@ No magic links, passwords, Resend, or passkeys required.
 ## Deploy (Vercel)
 
 1. **Root Directory** must be `ozempic-tracker` (not the repo root).
-2. Env vars:
+2. Env vars (Production + Preview):
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   - `NEXT_PUBLIC_SITE_URL` = `https://mum-health.vercel.app`  
+     (keeps Google OAuth on the stable production host, not preview URLs)
 3. Redeploy after Root Directory is set.
 
-**Auth note:** Route guards live in `proxy.ts` (cookie presence only — Edge-safe).  
-Real auth checks run in server pages via `getUser()`. Session refresh runs in the browser (`AuthSession`).
+**Auth note:** No Edge middleware/proxy (avoids `MIDDLEWARE_INVOCATION_FAILED`).  
+Auth is enforced in server pages via `getUser()`. OAuth cookies are set in  
+`/auth/callback`. Session refresh runs in the browser (`AuthSession`).
 
 ## Develop
 

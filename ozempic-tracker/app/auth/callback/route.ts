@@ -1,23 +1,60 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 
-export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
-  const nextRaw = searchParams.get("next") ?? "/dashboard";
-  // Only allow relative paths (prevent open redirects)
+/**
+ * Google / Supabase OAuth returns here with ?code=
+ * Exchange the code and attach session cookies on the redirect response
+ * (required on Vercel — RSC cookie writes are unreliable).
+ */
+export async function GET(request: NextRequest) {
+  const url = new URL(request.url);
+  const code = url.searchParams.get("code");
+  const nextRaw = url.searchParams.get("next") ?? "/dashboard";
   const next =
     nextRaw.startsWith("/") && !nextRaw.startsWith("//")
       ? nextRaw
       : "/dashboard";
 
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
-    }
+  // Prefer public site URL so previews don't break cookie domain / redirects
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || url.origin;
+
+  const loginError = NextResponse.redirect(
+    `${siteUrl}/login?error=auth`
+  );
+
+  if (!code) {
+    return loginError;
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth`);
+  const successRedirect = NextResponse.redirect(`${siteUrl}${next}`);
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return loginError;
+  }
+
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          successRedirect.cookies.set(name, value, options);
+        });
+      },
+    },
+  });
+
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (error) {
+    console.error("exchangeCodeForSession failed:", error.message);
+    return loginError;
+  }
+
+  return successRedirect;
 }

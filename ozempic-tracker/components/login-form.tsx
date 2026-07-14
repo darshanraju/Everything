@@ -36,6 +36,13 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
+function siteOrigin(): string {
+  // Prefer stable production URL so OAuth never returns to a random preview host
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+  if (configured) return configured;
+  return window.location.origin;
+}
+
 export function LoginForm() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(() => {
@@ -52,14 +59,13 @@ export function LoginForm() {
     setLoading(true);
 
     const supabase = createClient();
-    const origin = window.location.origin;
+    const origin = siteOrigin();
 
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${origin}/auth/callback?next=/dashboard`,
         queryParams: {
-          // Ask Google to re-show account picker (helpful on shared devices)
           prompt: "select_account",
         },
       },
@@ -69,7 +75,6 @@ export function LoginForm() {
       setError(authError.message);
       setLoading(false);
     }
-    // On success the browser redirects to Google — no further UI work.
   }
 
   return (

@@ -86,17 +86,22 @@ No Google secrets go in the Next.js app or Vercel env (only Supabase URL + publi
 
 | Field | Value |
 |--------|--------|
-| **Site URL** | `https://YOUR-PRODUCTION.vercel.app` |
+| **Site URL** | `https://mum-health.vercel.app` |
 | **Redirect URLs** | See list below |
 
-Add all of these to **Redirect URLs**:
+Add **all** of these to **Redirect URLs** (exact match required):
 
 ```text
 http://localhost:3000/auth/callback
-https://YOUR-PRODUCTION.vercel.app/auth/callback
+https://mum-health.vercel.app/auth/callback
+https://mum-health.vercel.app/**
 ```
 
-(Optional: preview deploys if you test on them — each preview host needs its own line.)
+If `…/auth/callback` is missing, Supabase sends users to Site URL as `/?code=…`  
+(the app now forwards that to `/auth/callback`, but the allow-list should still include the callback).
+
+Always sign in via the **production** URL: `https://mum-health.vercel.app`  
+(not `mum-health-xxxxx-….vercel.app` preview links).
 
 ### 2.3 Disable other sign-in methods (optional but “Google only”)
 
