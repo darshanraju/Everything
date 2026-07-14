@@ -4,40 +4,29 @@ Personal multi-app workspace. Each app lives in its own folder and uses a dedica
 
 ## Apps
 
-| Folder | App |
-|--------|-----|
-| [`ozempic-tracker/`](./ozempic-tracker/) | Mum’s weekly Ozempic + weight (kg) tracker (Next.js) |
+| Folder | App | Schema | Auth |
+|--------|-----|--------|------|
+| [`ozempic-tracker/`](./ozempic-tracker/) | **Mum Fitness** — weekly dose + weight (kg) | `ozempic_tracker` | Google |
+| [`todo-pwa/`](./todo-pwa/) | **Todo** — tasks + consistency chart (PWA) | `todo_pwa` | None (personal) |
 
-## Deploy Mum Fitness on Vercel
+## Deploy on Vercel (monorepo)
 
-This repo is a **monorepo**. The Next.js app is **not** at the root.
+Each app is a **separate** Vercel project (or one project with Root Directory set per deploy).
 
-### Required Vercel settings
-
-1. Open the Vercel project → **Settings → General**
-2. **Root Directory** → set to:
-   ```text
-   ozempic-tracker
-   ```
-   (Enable “Include source files outside of the Root Directory” only if you need it — usually leave off.)
-3. **Framework Preset:** Next.js  
-4. **Build Command:** `npm run build` (default)  
-5. **Output Directory:** leave **empty** / default (do **not** set `.next` or `public`)  
-6. **Install Command:** `npm install` (default)
-7. **Environment variables** (Settings → Environment Variables):
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-8. **Redeploy** → Deployments → ⋯ → Redeploy (clear cache if needed)
+1. **Root Directory** = the app folder (`ozempic-tracker` or `todo-pwa`), **not** the repo root  
+2. **Framework:** Next.js · Output directory empty  
+3. **Env:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`  
+   - Mum Fitness also needs `NEXT_PUBLIC_SITE_URL` for OAuth  
 
 ### Why you see `404: NOT_FOUND`
 
-If Root Directory is blank, Vercel builds the repo root (only `agents.md` / no Next app) and the deployment has nothing to serve → platform `NOT_FOUND`.
+Root Directory blank → Vercel builds the monorepo root (no Next app).
 
-### Supabase URLs (after you have a stable domain)
+## Supabase
 
-Use your **production** URL (not a one-off preview hash if it changes every deploy):
+One shared project. Expose both schemas under **API → Exposed schemas**:
 
-- Site URL: `https://YOUR-DOMAIN.vercel.app`
-- Redirect: `https://YOUR-DOMAIN.vercel.app/auth/callback`
-- Passkey RP ID: `YOUR-DOMAIN.vercel.app` (no `https://`)
-- Passkey origin: `https://YOUR-DOMAIN.vercel.app`
+- `ozempic_tracker`
+- `todo_pwa`
+
+Migrations live under each app’s `supabase/migrations/`.
