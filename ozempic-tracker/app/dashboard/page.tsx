@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { TrendingDown, TrendingUp, Scale, Sparkles } from "lucide-react";
 import { AppNav } from "@/components/app-nav";
-import { PasskeySetupCard } from "@/components/passkey-setup-card";
 import { WeeklyPromptBanner } from "@/components/weekly-prompt-banner";
 import { WeightChart } from "@/components/weight-chart";
 import {
@@ -72,8 +71,6 @@ export default async function DashboardPage() {
           weekOf={weekOf}
           alreadyLogged={!!currentLog}
         />
-
-        <PasskeySetupCard />
 
         <div className="grid grid-cols-2 gap-3">
           <Card className="soft-card col-span-2 rounded-2xl border-0 bg-gradient-to-br from-card to-soft-rose/60 ring-1 ring-primary/10 sm:col-span-1">

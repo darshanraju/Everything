@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { Heart } from "lucide-react";
 import { LoginForm } from "@/components/login-form";
@@ -19,10 +20,16 @@ export default async function LoginPage() {
         <p className="mx-auto mt-3 max-w-sm text-lg leading-relaxed text-muted-foreground">
           Your weekly dose, weight in{" "}
           <span className="font-semibold text-primary">kg</span>, and progress
-          — gentle and simple.
+          — sign in with Google.
         </p>
       </div>
-      <LoginForm />
+      <Suspense
+        fallback={
+          <div className="soft-card h-48 animate-pulse rounded-3xl bg-card/80" />
+        }
+      >
+        <LoginForm />
+      </Suspense>
     </main>
   );
 }
