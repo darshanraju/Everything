@@ -69,7 +69,7 @@ export function LoginForm() {
       const msg = authError.message.toLowerCase();
       if (msg.includes("rate limit") || msg.includes("email rate")) {
         setError(
-          "Too many emails sent. Wait about an hour, or use Fingerprint / Face ID if you’ve set that up."
+          "Too many sign-in emails just now. Wait a bit, or use Fingerprint / Face ID if you’ve set that up. (If this keeps happening, Resend SMTP may not be enabled in Supabase yet.)"
         );
         return;
       }

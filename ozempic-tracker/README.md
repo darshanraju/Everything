@@ -35,13 +35,25 @@ Mum-friendly UI: large controls, **fingerprint / Face ID (passkeys)**, magic-lin
 
 5. Enable **Email** magic link / OTP in Auth providers.
 
-6. **Customise the magic-link email** (so it says Ozempic Tracker, not generic Supabase):
+6. **Resend SMTP (required for real use — avoids Supabase free email rate limits):**
+
+   - Full steps: [`supabase/RESEND_SMTP.md`](./supabase/RESEND_SMTP.md)
+   - Supabase → Auth → **SMTP** → enable custom SMTP:
+     - Host: `smtp.resend.com`
+     - Port: `465`
+     - User: `resend`
+     - Password: your Resend API key
+     - Sender name: `Ozempic Tracker`
+     - Sender email: address on a **verified** Resend domain (or Resend test sender)
+   - The API key lives **only** in Supabase (not in this Next.js app / not in git)
+
+7. **Customise the magic-link email** (so it says Ozempic Tracker, not generic Supabase):
 
    - Authentication → Email Templates → **Magic Link**
    - Subject + HTML: see [`supabase/email-templates/`](./supabase/email-templates/)
    - Keep `{{ .ConfirmationURL }}` in the body unchanged
 
-7. **Enable passkeys (fingerprint / Face ID)** — required for biometric login:
+8. **Enable passkeys (fingerprint / Face ID)** — required for biometric login:
 
    - Authentication → **Passkeys** → enable
    - **Relying Party Display Name:** `Ozempic Tracker`
