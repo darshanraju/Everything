@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { PasscodeGate } from "@/components/passcode-gate";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -51,7 +52,7 @@ export default function RootLayout({
       className={`dark ${geistSans.variable} ${geistMono.variable} h-full`}
     >
       <body className="app-shell flex min-h-full flex-col font-sans">
-        {children}
+        <PasscodeGate>{children}</PasscodeGate>
       </body>
     </html>
   );
