@@ -2,7 +2,7 @@
 
 Weekly Ozempic check-ins for dose, **weight in kg**, and a scale photo — plus a simple weight-over-time chart.
 
-Mum-friendly UI: large controls, magic-link login (no password), Saturday prompt.
+Mum-friendly UI: large controls, **fingerprint / Face ID (passkeys)**, magic-link fallback, Saturday prompt.
 
 ## Database
 
@@ -34,6 +34,38 @@ Mum-friendly UI: large controls, magic-link login (no password), Saturday prompt
    - Redirect URLs: `http://localhost:3000/auth/callback`
 
 5. Enable **Email** magic link / OTP in Auth providers.
+
+6. **Customise the magic-link email** (so it says Ozempic Tracker, not generic Supabase):
+
+   - Authentication → Email Templates → **Magic Link**
+   - Subject + HTML: see [`supabase/email-templates/`](./supabase/email-templates/)
+   - Keep `{{ .ConfirmationURL }}` in the body unchanged
+
+7. **Enable passkeys (fingerprint / Face ID)** — required for biometric login:
+
+   - Authentication → **Passkeys** → enable
+   - **Relying Party Display Name:** `Ozempic Tracker`
+   - **Relying Party ID:** your domain only, e.g. `localhost` for local dev, or `yourdomain.com` in production (no `https://`)
+   - **Relying Party Origins:** e.g. `http://localhost:3000` and later `https://yourdomain.com`
+   - HTTPS is required on real phones (localhost is OK on a computer)
+
+### Passkeys on iPhone and Android (easy for mum)
+
+| | Apple (iPhone) | Android |
+|--|----------------|---------|
+| **What she sees** | Face ID / Touch ID / device passcode | Fingerprint / face unlock / screen lock |
+| **Browser** | Safari (or Chrome) | Chrome |
+| **Where stored** | Often iCloud Keychain | Often Google Password Manager |
+| **Setup** | Sign in once with email → Home → **Set up fingerprint / Face ID** | Same |
+| **Next visits** | Sign-in screen → **Fingerprint / Face ID** | Same |
+
+**Mum flow**
+
+1. Sign in once with the email magic link (on *her* phone).  
+2. On Home, tap **Set up fingerprint / Face ID** and approve the phone prompt.  
+3. Later: open the app → **Fingerprint / Face ID** — no email.
+
+No App Store download is required for web passkeys. A future “Add to Home Screen” PWA still uses the same passkeys.
 
 ## Develop
 

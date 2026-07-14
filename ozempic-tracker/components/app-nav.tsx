@@ -16,10 +16,10 @@ export function AppNav() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-10 border-b border-primary/10 bg-card/80 backdrop-blur-md">
+    <header className="sticky top-0 z-10 border-b border-primary/15 bg-soft-rose/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-lg items-center justify-between gap-3 px-4">
         <div className="flex items-center gap-2">
-          <span className="flex size-9 items-center justify-center rounded-full bg-soft-rose text-primary shadow-sm">
+          <span className="flex size-9 items-center justify-center rounded-full bg-primary/15 text-primary shadow-sm ring-1 ring-primary/20">
             <Heart className="size-4 fill-current" aria-hidden />
           </span>
           <span className="hidden text-sm font-bold tracking-tight text-primary sm:inline">
@@ -27,7 +27,7 @@ export function AppNav() {
           </span>
         </div>
 
-        <nav className="flex items-center gap-1 rounded-full bg-muted/80 p-1">
+        <nav className="flex items-center gap-1 rounded-full bg-primary/10 p-1 ring-1 ring-primary/10">
           {links.map(({ href, label, icon: Icon }) => {
             const active =
               pathname === href ||

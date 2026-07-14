@@ -53,27 +53,29 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Soft blush / rose theme — warm, readable, mum-friendly */
+/* Soft blush / rose theme — visibly pink, still readable */
 :root {
-  --background: oklch(0.985 0.012 350);
-  --foreground: oklch(0.32 0.04 340);
-  --card: oklch(0.995 0.006 350);
-  --card-foreground: oklch(0.32 0.04 340);
-  --popover: oklch(0.995 0.006 350);
-  --popover-foreground: oklch(0.32 0.04 340);
-  --primary: oklch(0.62 0.14 350);
+  /* Clear pink wash (not white) */
+  --background: oklch(0.955 0.045 350);
+  --foreground: oklch(0.32 0.05 340);
+  /* Soft pink-cream cards */
+  --card: oklch(0.985 0.025 350);
+  --card-foreground: oklch(0.32 0.05 340);
+  --popover: oklch(0.985 0.025 350);
+  --popover-foreground: oklch(0.32 0.05 340);
+  --primary: oklch(0.6 0.17 350);
   --primary-foreground: oklch(0.99 0.01 350);
-  --secondary: oklch(0.94 0.03 340);
-  --secondary-foreground: oklch(0.38 0.06 340);
-  --muted: oklch(0.96 0.02 350);
-  --muted-foreground: oklch(0.48 0.035 340);
-  --accent: oklch(0.94 0.035 20);
-  --accent-foreground: oklch(0.4 0.06 20);
+  --secondary: oklch(0.9 0.06 350);
+  --secondary-foreground: oklch(0.36 0.08 340);
+  --muted: oklch(0.93 0.05 350);
+  --muted-foreground: oklch(0.45 0.04 340);
+  --accent: oklch(0.92 0.055 20);
+  --accent-foreground: oklch(0.38 0.07 20);
   --destructive: oklch(0.58 0.18 20);
-  --border: oklch(0.9 0.03 350);
-  --input: oklch(0.92 0.025 350);
-  --ring: oklch(0.7 0.1 350);
-  --chart-1: oklch(0.68 0.14 350);
+  --border: oklch(0.86 0.055 350);
+  --input: oklch(0.9 0.05 350);
+  --ring: oklch(0.68 0.14 350);
+  --chart-1: oklch(0.65 0.16 350);
   --chart-2: oklch(0.72 0.1 20);
   --chart-3: oklch(0.75 0.08 300);
   --chart-4: oklch(0.78 0.08 160);
@@ -81,17 +83,17 @@
   --radius: 1.1rem;
   --success: oklch(0.72 0.1 155);
   --success-foreground: oklch(0.28 0.05 155);
-  --soft-rose: oklch(0.94 0.04 350);
-  --soft-peach: oklch(0.95 0.035 40);
-  --soft-lilac: oklch(0.95 0.03 310);
-  --sidebar: oklch(0.98 0.015 350);
-  --sidebar-foreground: oklch(0.32 0.04 340);
-  --sidebar-primary: oklch(0.62 0.14 350);
+  --soft-rose: oklch(0.9 0.07 350);
+  --soft-peach: oklch(0.92 0.055 30);
+  --soft-lilac: oklch(0.92 0.055 320);
+  --sidebar: oklch(0.94 0.05 350);
+  --sidebar-foreground: oklch(0.32 0.05 340);
+  --sidebar-primary: oklch(0.6 0.17 350);
   --sidebar-primary-foreground: oklch(0.99 0.01 350);
-  --sidebar-accent: oklch(0.94 0.03 340);
-  --sidebar-accent-foreground: oklch(0.38 0.06 340);
-  --sidebar-border: oklch(0.9 0.03 350);
-  --sidebar-ring: oklch(0.7 0.1 350);
+  --sidebar-accent: oklch(0.9 0.06 350);
+  --sidebar-accent-foreground: oklch(0.36 0.08 340);
+  --sidebar-border: oklch(0.86 0.055 350);
+  --sidebar-ring: oklch(0.68 0.14 350);
 }
 
 .dark {
@@ -145,21 +147,27 @@
   }
 }
 
-/* Soft app shell background */
+/* Pink blush app shell — full-page wash */
 .app-shell {
   min-height: 100%;
   background:
-    radial-gradient(ellipse 120% 80% at 50% -20%, oklch(0.94 0.05 350 / 0.9), transparent 55%),
-    radial-gradient(ellipse 80% 50% at 100% 100%, oklch(0.95 0.04 20 / 0.5), transparent 45%),
-    radial-gradient(ellipse 60% 40% at 0% 80%, oklch(0.95 0.03 310 / 0.45), transparent 40%),
-    var(--background);
+    radial-gradient(ellipse 140% 90% at 50% -10%, oklch(0.9 0.1 350), transparent 55%),
+    radial-gradient(ellipse 90% 60% at 100% 100%, oklch(0.9 0.08 20 / 0.75), transparent 50%),
+    radial-gradient(ellipse 70% 50% at 0% 85%, oklch(0.91 0.07 320 / 0.7), transparent 45%),
+    linear-gradient(
+      165deg,
+      oklch(0.94 0.07 350) 0%,
+      oklch(0.96 0.05 350) 40%,
+      oklch(0.94 0.055 20) 100%
+    );
 }
 
-/* Soft elevated cards */
+/* Soft elevated cards with pink-tinted shadow */
 .soft-card {
+  background-color: oklch(0.99 0.02 350 / 0.92);
   box-shadow:
-    0 1px 2px oklch(0.45 0.06 350 / 0.04),
-    0 8px 24px oklch(0.55 0.08 350 / 0.06);
+    0 1px 2px oklch(0.55 0.1 350 / 0.08),
+    0 10px 28px oklch(0.6 0.12 350 / 0.12);
 }
 
 /* Larger readable numbers */

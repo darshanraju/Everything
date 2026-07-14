@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, Mail, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Fingerprint, Loader2, Mail, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { formatPasskeyError, isPasskeySupported } from "@/lib/passkeys";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,10 +17,33 @@ import {
 } from "@/components/ui/card";
 
 export function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [passkeyOk, setPasskeyOk] = useState(false);
+
+  useEffect(() => {
+    setPasskeyOk(isPasskeySupported());
+  }, []);
+
+  async function signInWithPasskey() {
+    setError(null);
+    setPasskeyLoading(true);
+    const supabase = createClient();
+
+    try {
+      const { error: authError } = await supabase.auth.signInWithPasskey();
+      if (authError) throw authError;
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err) {
+      setError(formatPasskeyError(err));
+      setPasskeyLoading(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,12 +56,23 @@ export function LoginForm() {
       email: email.trim(),
       options: {
         emailRedirectTo: `${origin}/auth/callback?next=/dashboard`,
+        data: {
+          app_name: "Ozempic Tracker",
+          app_purpose: "weekly Ozempic check-in, weight in kg, and scale photo",
+        },
       },
     });
 
     setLoading(false);
 
     if (authError) {
+      const msg = authError.message.toLowerCase();
+      if (msg.includes("rate limit") || msg.includes("email rate")) {
+        setError(
+          "Too many emails sent. Wait about an hour, or use Fingerprint / Face ID if you’ve set that up."
+        );
+        return;
+      }
       setError(authError.message);
       return;
     }
@@ -50,11 +86,16 @@ export function LoginForm() {
           <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-soft-rose text-primary">
             <Mail className="size-7" />
           </span>
-          <CardTitle className="text-2xl font-bold">Check your email</CardTitle>
+          <CardTitle className="text-2xl font-bold">Check your inbox</CardTitle>
           <CardDescription className="text-base leading-relaxed">
-            We sent a magic link to{" "}
+            We emailed a sign-in link for{" "}
+            <strong className="font-semibold text-foreground">
+              Ozempic Tracker
+            </strong>{" "}
+            to{" "}
             <strong className="font-semibold text-foreground">{email}</strong>.
-            Open it on this phone to sign in — no password needed.
+            Open it on this phone — then set up fingerprint / Face ID so you
+            don&apos;t need email next time.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-2">
@@ -81,11 +122,46 @@ export function LoginForm() {
           Sign in
         </CardTitle>
         <CardDescription className="text-base leading-relaxed">
-          Enter your email and we&apos;ll send you a magic link — no password to
-          remember.
+          Easiest: use{" "}
+          <strong className="font-semibold text-foreground">
+            fingerprint or Face ID
+          </strong>{" "}
+          if you&apos;ve set it up. Otherwise we&apos;ll email a one-tap link.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-5">
+        {passkeyOk && (
+          <>
+            <Button
+              type="button"
+              size="lg"
+              className="h-14 w-full rounded-full text-base font-bold shadow-md shadow-primary/25"
+              disabled={passkeyLoading || loading}
+              onClick={signInWithPasskey}
+            >
+              {passkeyLoading ? (
+                <>
+                  <Loader2 className="animate-spin" />
+                  Waiting for phone…
+                </>
+              ) : (
+                <>
+                  <Fingerprint className="size-5" />
+                  Fingerprint / Face ID
+                </>
+              )}
+            </Button>
+
+            <div className="relative flex items-center gap-3">
+              <div className="h-px flex-1 bg-primary/15" />
+              <span className="text-sm font-semibold text-muted-foreground">
+                or email link
+              </span>
+              <div className="h-px flex-1 bg-primary/15" />
+            </div>
+          </>
+        )}
+
         <form onSubmit={onSubmit} className="flex flex-col gap-5">
           <div className="grid gap-2.5">
             <Label htmlFor="email" className="text-base font-semibold">
@@ -113,8 +189,13 @@ export function LoginForm() {
           <Button
             type="submit"
             size="lg"
-            className="h-14 w-full rounded-full text-base font-bold shadow-md shadow-primary/25"
-            disabled={loading}
+            variant={passkeyOk ? "outline" : "default"}
+            className={
+              passkeyOk
+                ? "h-14 w-full rounded-full border-primary/20 text-base font-bold hover:bg-soft-rose"
+                : "h-14 w-full rounded-full text-base font-bold shadow-md shadow-primary/25"
+            }
+            disabled={loading || passkeyLoading}
           >
             {loading ? (
               <>
@@ -122,7 +203,7 @@ export function LoginForm() {
                 Sending…
               </>
             ) : (
-              "Send magic link"
+              "Email me a sign-in link"
             )}
           </Button>
         </form>
