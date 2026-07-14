@@ -8,7 +8,7 @@ Personal multi-app workspace. Each app lives in its own folder and uses a dedica
 |--------|-----|
 | [`ozempic-tracker/`](./ozempic-tracker/) | Mum’s weekly Ozempic + weight (kg) tracker (Next.js) |
 
-## Deploy Ozempic Tracker on Vercel
+## Deploy Mum Fitness on Vercel
 
 This repo is a **monorepo**. The Next.js app is **not** at the root.
 

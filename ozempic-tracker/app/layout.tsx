@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ozempic Tracker",
+  title: "Mum Fitness",
   description:
-    "Weekly Ozempic check-ins: dose, weight in kg, and scale photo — track progress over time.",
+    "Mum Fitness — weekly check-ins: dose, weight in kg, and scale photo. Track progress over time.",
 };
 
 export default function RootLayout({

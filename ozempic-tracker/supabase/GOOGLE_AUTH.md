@@ -1,6 +1,6 @@
 # Google sign-in only (Google Cloud + Supabase)
 
-Ozempic Tracker uses **Google OAuth** as the only login method.  
+Mum Fitness uses **Google OAuth** as the only login method.  
 No magic links, passwords, or passkeys in the UI.
 
 ## Overview
@@ -29,7 +29,7 @@ No Google secrets go in the Next.js app or Vercel env (only Supabase URL + publi
 
 1. **APIs & Services** → **OAuth consent screen**
 2. User type: **External** (unless you use a Workspace org)
-3. App name: `Ozempic Tracker`
+3. App name: `Mum Fitness`
 4. User support email: your email
 5. Developer contact: your email
 6. Save
@@ -48,7 +48,7 @@ No Google secrets go in the Next.js app or Vercel env (only Supabase URL + publi
 
 1. **APIs & Services** → **Credentials** → **Create credentials** → **OAuth client ID**
 2. Application type: **Web application**
-3. Name: `Ozempic Tracker Web`
+3. Name: `Mum Fitness Web`
 4. **Authorized JavaScript origins** (your real app hosts, no path):
 
    ```text

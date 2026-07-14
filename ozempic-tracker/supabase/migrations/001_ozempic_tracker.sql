@@ -1,4 +1,4 @@
--- Ozempic Tracker schema (shared Supabase project — not public)
+-- Mum Fitness schema (shared Supabase project — not public)
 -- Follows agents.md multi-app schema strategy.
 -- Run this in the Supabase SQL Editor (or via supabase db push).
 -- After running: expose schema `ozempic_tracker` in Project Settings → API → Exposed schemas.

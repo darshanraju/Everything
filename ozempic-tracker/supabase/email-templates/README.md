@@ -1,4 +1,4 @@
-# Auth email templates (Ozempic Tracker)
+# Auth email templates (Mum Fitness)
 
 Supabase sends magic-link emails using templates on the **shared project**.  
 The app cannot change email subject/body from Next.js alone — update them in the dashboard.
@@ -12,7 +12,7 @@ The app cannot change email subject/body from Next.js alone — update them in t
 ### Subject
 
 ```text
-Sign in to Ozempic Tracker — your weekly check-in
+Sign in to Mum Fitness — your weekly check-in
 ```
 
 ### Body
@@ -30,11 +30,11 @@ If email confirmation is enabled for new users, use the same tone:
 **Subject:**
 
 ```text
-Confirm your Ozempic Tracker email
+Confirm your Mum Fitness email
 ```
 
-**Body:** Same structure as magic-link, with CTA “Confirm and open Ozempic Tracker” and `{{ .ConfirmationURL }}`.
+**Body:** Same structure as magic-link, with CTA “Confirm and open Mum Fitness” and `{{ .ConfirmationURL }}`.
 
 ## Note on shared Supabase
 
-Email templates are **project-wide**. If other apps share this Supabase project, a generic subject (e.g. “Sign in to Everything”) may be better later. For now this is tuned for mum’s Ozempic Tracker.
+Email templates are **project-wide**. If other apps share this Supabase project, a generic subject (e.g. “Sign in to Everything”) may be better later. For now this is tuned for Mum Fitness.

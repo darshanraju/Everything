@@ -1,4 +1,4 @@
-# Ozempic Tracker
+# Mum Fitness
 
 Weekly Ozempic check-ins for dose, **weight in kg**, and a scale photo — plus a simple weight-over-time chart.
 

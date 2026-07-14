@@ -43,7 +43,7 @@ export function formatPasskeyError(error: unknown): string {
     code === "webauthn_credential_exists" ||
     message.includes("credential_exists")
   ) {
-    return "This phone already has a passkey for Ozempic Tracker.";
+    return "This phone already has a passkey for Mum Fitness.";
   }
 
   if (message.includes("https") || message.includes("secure context")) {

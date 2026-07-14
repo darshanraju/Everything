@@ -39,7 +39,7 @@ Use Resend’s onboarding sender while testing:
 | Field | Value |
 |--------|--------|
 | **Sender email** | Your verified address (e.g. `login@yourdomain.com` or Resend test sender) |
-| **Sender name** | `Ozempic Tracker` |
+| **Sender name** | `Mum Fitness` |
 | **Host** | `smtp.resend.com` |
 | **Port** | `465` (SSL) — if that fails try `587` |
 | **Username** | `resend` |

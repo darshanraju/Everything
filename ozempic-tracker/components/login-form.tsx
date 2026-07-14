@@ -84,7 +84,7 @@ export function LoginForm() {
         <CardDescription className="text-base leading-relaxed">
           Use your Google account to open{" "}
           <strong className="font-semibold text-foreground">
-            Ozempic Tracker
+            Mum Fitness
           </strong>
           . No passwords or email links.
         </CardDescription>

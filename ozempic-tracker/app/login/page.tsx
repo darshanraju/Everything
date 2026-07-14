@@ -15,7 +15,7 @@ export default async function LoginPage() {
           <Heart className="size-8 fill-primary/30" aria-hidden />
         </span>
         <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-          Ozempic Tracker
+          Mum Fitness
         </h1>
         <p className="mx-auto mt-3 max-w-sm text-lg leading-relaxed text-muted-foreground">
           Your weekly dose, weight in{" "}

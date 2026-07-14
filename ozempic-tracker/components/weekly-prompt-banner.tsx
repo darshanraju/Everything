@@ -28,8 +28,7 @@ export function WeeklyPromptBanner({
               All done for this week
             </p>
             <p className="mt-1 text-base leading-relaxed text-emerald-800/85">
-              Week of {formatWeekOf(weekOf)} is logged. You&apos;re doing
-              wonderfully.
+              {`Week of ${formatWeekOf(weekOf)} is logged. You're doing wonderfully.`}
             </p>
           </div>
         </CardContent>
