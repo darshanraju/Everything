@@ -76,7 +76,10 @@ No App Store download is required for web passkeys. A future “Add to Home Scre
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 3. Redeploy.
 
-Middleware is self-contained in `middleware.ts` (no `@/` imports) so Vercel Edge can bundle it.
+**Auth note:** Route guards live in `proxy.ts` (cookie presence only — Edge-safe).
+Real auth checks run in server pages via `getUser()`. Session refresh runs in the
+browser (`AuthSession`), because importing `@supabase/ssr` into Edge middleware
+crashes on Vercel with `ReferenceError: __dirname is not defined`.
 
 ## Develop
 

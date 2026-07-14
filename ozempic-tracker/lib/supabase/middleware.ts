@@ -1,7 +1,10 @@
 /**
- * Session helpers for route handlers / server components if needed.
- * Edge middleware lives inlined in `/middleware.ts` (Vercel Edge-safe).
+ * Deprecated: Edge middleware/proxy must not import @supabase/ssr
+ * (Vercel: ReferenceError: __dirname is not defined).
  *
- * Prefer importing `createClient` from `./server` for RSC and route handlers.
+ * Use:
+ * - `proxy.ts` for lightweight cookie-based redirects
+ * - `createClient` from `./server` for real getUser() checks in RSC
+ * - `AuthSession` client component for session refresh in the browser
  */
 export {};

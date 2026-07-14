@@ -18,7 +18,8 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Called from a Server Component — middleware will refresh the session.
+            // Called from a Server Component — cookies are refreshed via
+            // AuthSession (browser client) instead of Edge middleware.
           }
         },
       },

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Nunito, Geist_Mono } from "next/font/google";
+import { AuthSession } from "@/components/auth-session";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -30,6 +31,7 @@ export default function RootLayout({
       className={`${nunito.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="app-shell flex min-h-full flex-col font-sans text-foreground">
+        <AuthSession />
         {children}
       </body>
     </html>
