@@ -67,9 +67,21 @@ Mum-friendly UI: large controls, **fingerprint / Face ID (passkeys)**, magic-lin
 
 No App Store download is required for web passkeys. A future “Add to Home Screen” PWA still uses the same passkeys.
 
+## Deploy (Vercel)
+
+1. **Root Directory** must be `ozempic-tracker` (not the repo root).
+   - Project Settings → General → Root Directory → `ozempic-tracker`
+2. Set env vars:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+3. Redeploy.
+
+Middleware is self-contained in `middleware.ts` (no `@/` imports) so Vercel Edge can bundle it.
+
 ## Develop
 
 ```bash
+cd ozempic-tracker
 npm install
 npm run dev
 ```
