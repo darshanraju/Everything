@@ -9,8 +9,8 @@ import { manualTodayContributor } from "@/modules/manual/today";
  * To add a future tab: implement modules/<key>/today.ts and append below.
  */
 export const TODAY_CONTRIBUTORS: TodayContributor[] = [
+  manualTodayContributor, // Yours first so todos stay visible on desktop
   fitnessTodayContributor,
   healthTodayContributor,
   foodTodayContributor,
-  manualTodayContributor,
 ];

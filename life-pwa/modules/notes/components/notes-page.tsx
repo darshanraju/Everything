@@ -39,6 +39,7 @@ export function NotesPage() {
 
   return (
     <AppShell
+      layout="desktop"
       title="Notes"
       subtitle="Feature ideas & scratchpad"
       actions={
@@ -79,12 +80,12 @@ export function NotesPage() {
           </Link>
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2 xl:grid-cols-3">
           {notes.map((n) => (
             <li key={n.id}>
               <Link
                 href={`/notes/${n.id}`}
-                className="block rounded-2xl border border-border/80 bg-card p-4 transition-colors hover:bg-muted/30"
+                className="block h-full rounded-xl border border-border/80 bg-card p-4 transition-colors hover:bg-muted/30"
               >
                 <p className="font-bold leading-snug">{n.title}</p>
                 <p className="mt-1 text-sm text-muted-foreground line-clamp-2">

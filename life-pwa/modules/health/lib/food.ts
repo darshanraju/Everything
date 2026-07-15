@@ -1,6 +1,16 @@
 import { db } from "@/lib/supabase/client";
-import type { Food, FoodLog, MacroTargets, MacroTotals } from "@/lib/schema";
-import { emptyMacroTotals, sumFoodMacros } from "@/lib/schema";
+import type {
+  AdhocMeal,
+  Food,
+  FoodLog,
+  MacroTargets,
+  MacroTotals,
+} from "@/lib/schema";
+import {
+  caloriesFromMacros,
+  emptyMacroTotals,
+  sumFoodMacros,
+} from "@/lib/schema";
 import { format } from "date-fns";
 
 const DEFAULT_TARGETS = {
@@ -281,24 +291,104 @@ export async function listFoodLogsBetween(
   return (data ?? []).map((r) => mapLog(r as Record<string, unknown>));
 }
 
-/** Sum macros of each logged serving for a day (multi-serving counts). */
+function mapAdhoc(row: Record<string, unknown>): AdhocMeal {
+  return {
+    id: row.id as string,
+    meal_label: row.meal_label as string,
+    protein_g: Number(row.protein_g),
+    carbs_g: Number(row.carbs_g),
+    fat_g: Number(row.fat_g),
+    calories: Number(row.calories),
+    logged_on: row.logged_on as string,
+    notes: (row.notes as string) ?? null,
+    created_at: row.created_at as string,
+  };
+}
+
+export async function listAdhocMealsForDate(
+  date: Date = new Date()
+): Promise<AdhocMeal[]> {
+  const day = foodDateKey(date);
+  const { data, error } = await db()
+    .from("adhoc_meals")
+    .select("*")
+    .eq("logged_on", day)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r) => mapAdhoc(r as Record<string, unknown>));
+}
+
+export async function createAdhocMeal(input: {
+  meal_label: string;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  notes?: string | null;
+  date?: Date;
+}): Promise<AdhocMeal> {
+  const protein_g = Math.max(0, Number(input.protein_g) || 0);
+  const carbs_g = Math.max(0, Number(input.carbs_g) || 0);
+  const fat_g = Math.max(0, Number(input.fat_g) || 0);
+  const calories = caloriesFromMacros(protein_g, carbs_g, fat_g);
+  const { data, error } = await db()
+    .from("adhoc_meals")
+    .insert({
+      meal_label: input.meal_label.trim() || "Other",
+      protein_g,
+      carbs_g,
+      fat_g,
+      calories,
+      notes: input.notes?.trim() || null,
+      logged_on: foodDateKey(input.date ?? new Date()),
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return mapAdhoc(data as Record<string, unknown>);
+}
+
+export async function deleteAdhocMeal(id: string): Promise<void> {
+  const { error } = await db().from("adhoc_meals").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/** Sum macros of library servings + ad-hoc meals for a day. */
 export async function getMacroTotalsForDate(
   date: Date = new Date()
 ): Promise<{
   targets: MacroTargets;
   current: MacroTotals;
 }> {
-  const [targets, logs, foods] = await Promise.all([
+  const [targets, logs, foods, adhoc] = await Promise.all([
     getMacroTargets(),
     listFoodLogsForDate(date),
     listFoods(false),
+    listAdhocMealsForDate(date).catch(() => [] as AdhocMeal[]),
   ]);
-  if (logs.length === 0) {
-    return { targets, current: emptyMacroTotals() };
-  }
+
   const byId = new Map(foods.map((f) => [f.id, f]));
   const eaten = logs
     .map((l) => byId.get(l.food_id))
     .filter((f): f is Food => Boolean(f));
-  return { targets, current: sumFoodMacros(eaten) };
+  const fromLibrary = sumFoodMacros(eaten);
+
+  const fromAdhoc = adhoc.reduce(
+    (acc, m) => ({
+      calories: acc.calories + Number(m.calories),
+      protein_g: acc.protein_g + Number(m.protein_g),
+      carbs_g: acc.carbs_g + Number(m.carbs_g),
+      fat_g: acc.fat_g + Number(m.fat_g),
+    }),
+    emptyMacroTotals()
+  );
+
+  return {
+    targets,
+    current: {
+      calories: fromLibrary.calories + fromAdhoc.calories,
+      protein_g: fromLibrary.protein_g + fromAdhoc.protein_g,
+      carbs_g: fromLibrary.carbs_g + fromAdhoc.carbs_g,
+      fat_g: fromLibrary.fat_g + fromAdhoc.fat_g,
+    },
+  };
 }

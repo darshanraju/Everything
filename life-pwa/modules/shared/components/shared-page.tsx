@@ -128,6 +128,7 @@ export function SharedPage({
 
   return (
     <AppShell
+      layout="desktop"
       title="Shared"
       subtitle="Links you save for later"
       actions={
@@ -188,7 +189,7 @@ export function SharedPage({
           )}
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2 xl:grid-cols-3">
           {filtered.map((link) => (
             <li
               key={link.id}

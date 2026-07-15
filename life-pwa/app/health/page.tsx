@@ -80,6 +80,7 @@ export default function HealthHomePage() {
 
   return (
     <AppShell
+      layout="desktop"
       title="Routine"
       subtitle="Meds, peptides, skincare & more"
       actions={
@@ -110,7 +111,7 @@ export default function HealthHomePage() {
           </Link>
         </div>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
           {protocols.map((p) => {
             const done = takenToday[p.id];
             const dueToday = isProtocolDueOn(p, new Date());

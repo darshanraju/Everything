@@ -5,13 +5,18 @@ import { usePathname } from "next/navigation";
 import { enabledModules } from "@/modules/registry";
 import { cn } from "@/lib/utils";
 
-export function ModuleTabs() {
+export function ModuleTabs({ wide = false }: { wide?: boolean }) {
   const pathname = usePathname();
   const modules = enabledModules();
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border/80 bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
-      <div className="mx-auto flex max-w-lg">
+      <div
+        className={cn(
+          "mx-auto flex w-full",
+          wide ? "max-w-lg lg:max-w-6xl" : "max-w-lg"
+        )}
+      >
         {modules.map((m) => {
           const active =
             pathname === m.href || pathname.startsWith(`${m.href}/`);

@@ -49,6 +49,7 @@ Tabs are driven by `modules/registry.ts`. Add a new module by:
    - [`supabase/migrations/011_protocol_schedule_weekdays.sql`](./supabase/migrations/011_protocol_schedule_weekdays.sql) — Weekly/custom protocol days
    - [`supabase/migrations/012_food_logs_multi_serving.sql`](./supabase/migrations/012_food_logs_multi_serving.sql) — Multiple food servings per day
    - [`supabase/migrations/013_notes.sql`](./supabase/migrations/013_notes.sql) — Notes notepad
+   - [`supabase/migrations/014_adhoc_meals.sql`](./supabase/migrations/014_adhoc_meals.sql) — Ad-hoc meal macros
 
 3. Expose schema **`life_hub`**: Project Settings → API → Exposed schemas.
 

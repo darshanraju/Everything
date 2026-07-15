@@ -5,9 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Moon, Dumbbell, Play } from "lucide-react";
 import { AppShell } from "@/components/shell/app-shell";
+import {
+  DesktopBoard,
+  DesktopCard,
+} from "@/components/shell/desktop-board";
 import { SubNav } from "@/components/shell/sub-nav";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
   WEEKDAYS,
@@ -85,7 +88,11 @@ export default function FitnessHomePage() {
   const label = WEEKDAYS.find((w) => w.value === weekday)?.label ?? "";
 
   return (
-    <AppShell title="Fitness" subtitle={`${label} · plan for today`}>
+    <AppShell
+      layout="desktop"
+      title="Fitness"
+      subtitle={`${label} · plan for today`}
+    >
       <SubNav items={FITNESS_SUBNAV} />
 
       {loading ? (
@@ -100,16 +107,16 @@ export default function FitnessHomePage() {
           </span>
         </p>
       ) : (
-        <div className="flex flex-col gap-4">
+        <DesktopBoard>
           {active && (
-            <Card className="border-amber-500/40 bg-amber-500/10">
-              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <DesktopCard title="In progress" className="border-amber-500/40 bg-amber-500/10 lg:col-span-2 xl:col-span-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="font-semibold text-amber-100">
-                    Workout in progress
+                    {active.name || "Live session"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {active.name || "Live session"}
+                    Resume your workout
                   </p>
                 </div>
                 <Button
@@ -118,13 +125,13 @@ export default function FitnessHomePage() {
                 >
                   Resume
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </DesktopCard>
           )}
 
           {day?.is_rest || !day?.program ? (
-            <Card className="border-border/80">
-              <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <DesktopCard title="Today" className="lg:col-span-2">
+              <div className="flex flex-col items-center gap-3 py-6 text-center">
                 <Moon className="size-10 text-muted-foreground" />
                 <p className="text-lg font-semibold">Rest day</p>
                 <p className="text-sm text-muted-foreground">
@@ -154,107 +161,130 @@ export default function FitnessHomePage() {
                     Edit weekly plan
                   </Link>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </DesktopCard>
           ) : (
             <>
-              <Card className="border-primary/25 bg-primary/10">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2 text-primary">
-                    <Dumbbell className="size-5" />
-                    <CardTitle className="text-xl">{day.program.name}</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
+              <DesktopCard title="Program">
+                <div className="mb-3 flex items-center gap-2 text-primary">
+                  <Dumbbell className="size-5" />
+                  <p className="text-lg font-bold text-foreground">
+                    {day.program.name}
+                  </p>
+                </div>
+                <p className="mb-3 text-sm text-muted-foreground">
                   {exercises.length} exercise
                   {exercises.length === 1 ? "" : "s"} prescribed
-                </CardContent>
-              </Card>
+                </p>
+                <Button
+                  size="lg"
+                  className="h-11 w-full rounded-full font-bold"
+                  disabled={starting}
+                  onClick={() => void onStart()}
+                >
+                  {starting ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Play className="size-5" />
+                  )}
+                  {active ? "Resume workout" : "Start workout"}
+                </Button>
+              </DesktopCard>
 
-              <Button
-                size="lg"
-                className="h-12 w-full rounded-full text-base font-bold"
-                disabled={starting}
-                onClick={() => void onStart()}
-              >
-                {starting ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <Play className="size-5" />
-                )}
-                {active ? "Resume workout" : "Start workout"}
-              </Button>
+              <DesktopCard title="Exercises" className="xl:col-span-2">
+                <ul className="flex flex-col gap-2">
+                  {exercises.map((pe) => (
+                    <li
+                      key={pe.id}
+                      className="rounded-lg border border-border/80 bg-card px-3 py-2"
+                    >
+                      <p className="font-semibold">
+                        {pe.exercise?.name ?? "Exercise"}
+                      </p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">
+                        {pe.exercise?.exercise_kind === "cardio" ? (
+                          <>
+                            {pe.target_duration_min != null
+                              ? `${pe.target_duration_min} min`
+                              : "—"}
+                            {pe.target_distance_km != null
+                              ? ` · ${pe.target_distance_km} km`
+                              : ""}
+                          </>
+                        ) : (
+                          <>
+                            {pe.target_sets} × {pe.target_reps}
+                            {pe.target_weight_kg != null
+                              ? ` · ${pe.target_weight_kg} kg`
+                              : ""}
+                          </>
+                        )}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </DesktopCard>
+            </>
+          )}
 
-              <ul className="flex flex-col gap-2">
-                {exercises.map((pe) => (
-                  <li
-                    key={pe.id}
-                    className="rounded-xl border border-border/80 bg-card px-4 py-3"
-                  >
-                    <p className="font-semibold">
-                      {pe.exercise?.name ?? "Exercise"}
-                    </p>
-                    <p className="mt-0.5 text-sm text-muted-foreground">
-                      {pe.exercise?.exercise_kind === "cardio" ? (
-                        <>
-                          {pe.target_duration_min != null
-                            ? `${pe.target_duration_min} min`
-                            : "—"}
-                          {pe.target_distance_km != null
-                            ? ` · ${pe.target_distance_km} km`
-                            : ""}
-                        </>
-                      ) : (
-                        <>
-                          {pe.target_sets} × {pe.target_reps}
-                          {pe.target_weight_kg != null
-                            ? ` · ${pe.target_weight_kg} kg`
-                            : ""}
-                        </>
-                      )}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="flex flex-wrap gap-2">
+          <DesktopCard title="Quick links">
+            <div className="flex flex-wrap gap-2">
+              {day?.program_id && !day.is_rest && (
                 <Link
                   href={`/fitness/programs/${day.program_id}`}
                   className={cn(
-                    buttonVariants({ variant: "outline" }),
+                    buttonVariants({ variant: "outline", size: "sm" }),
                     "rounded-full"
                   )}
                 >
                   Edit program
                 </Link>
-                <Link
-                  href="/fitness/week"
-                  className={cn(
-                    buttonVariants({ variant: "ghost" }),
-                    "rounded-full"
-                  )}
-                >
-                  Change week
-                </Link>
-                <Link
-                  href="/fitness/history"
-                  className={cn(
-                    buttonVariants({ variant: "ghost" }),
-                    "rounded-full"
-                  )}
-                >
-                  History
-                </Link>
-              </div>
-            </>
-          )}
+              )}
+              <Link
+                href="/fitness/week"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "rounded-full"
+                )}
+              >
+                Week plan
+              </Link>
+              <Link
+                href="/fitness/history"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "rounded-full"
+                )}
+              >
+                History
+              </Link>
+              <Link
+                href="/fitness/weight"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "rounded-full"
+                )}
+              >
+                Weight
+              </Link>
+              <Link
+                href="/fitness/exercises"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "rounded-full"
+                )}
+              >
+                Exercises
+              </Link>
+            </div>
+          </DesktopCard>
 
           {error && (
-            <p className="text-sm text-destructive" role="alert">
+            <p className="text-sm text-destructive lg:col-span-full" role="alert">
               {error}
             </p>
           )}
-        </div>
+        </DesktopBoard>
       )}
     </AppShell>
   );

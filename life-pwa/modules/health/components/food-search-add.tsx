@@ -106,7 +106,7 @@ export function FoodSearchAdd({
           }}
           onFocus={() => setOpen(true)}
           placeholder={placeholder}
-          className="h-11 pl-9"
+          className="h-11 pl-9 lg:h-8 lg:text-sm"
           autoComplete="off"
           disabled={loading}
         />

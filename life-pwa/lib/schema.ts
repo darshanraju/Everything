@@ -194,6 +194,43 @@ export function emptyMacroTotals(): MacroTotals {
   return { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
 }
 
+/** Atwater factors: 4 kcal/g protein, 4 carbs, 9 fat */
+export function caloriesFromMacros(
+  protein_g: number,
+  carbs_g: number,
+  fat_g: number
+): number {
+  return Math.round(4 * protein_g + 4 * carbs_g + 9 * fat_g);
+}
+
+export type MealLabel =
+  | "Breakfast"
+  | "Lunch"
+  | "Dinner"
+  | "Snack"
+  | "Other";
+
+export const MEAL_LABELS: MealLabel[] = [
+  "Breakfast",
+  "Lunch",
+  "Dinner",
+  "Snack",
+  "Other",
+];
+
+/** One-off macros for a day (not food library) */
+export type AdhocMeal = {
+  id: string;
+  meal_label: string;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  calories: number;
+  logged_on: string;
+  notes: string | null;
+  created_at: string;
+};
+
 export function sumFoodMacros(foods: Pick<Food, "calories" | "protein_g" | "carbs_g" | "fat_g">[]): MacroTotals {
   return foods.reduce(
     (acc, f) => ({

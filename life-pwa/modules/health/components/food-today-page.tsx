@@ -15,16 +15,21 @@ import { cn } from "@/lib/utils";
 import {
   formatFoodMacros,
   sumFoodMacros,
+  type AdhocMeal,
   type Food,
   type MacroTargets,
+  type MacroTotals,
 } from "@/lib/schema";
+import { emptyMacroTotals } from "@/lib/schema";
 import {
   listFoods,
   foodServingCountsForDate,
-  getMacroTargets,
+  getMacroTotalsForDate,
+  listAdhocMealsForDate,
   logFoodForDate,
   toggleFoodLog,
 } from "@/modules/health/lib/food";
+import { AdhocMealForm } from "@/modules/health/components/adhoc-meal-form";
 
 export function FoodTodayPage() {
   const [targets, setTargets] = useState<MacroTargets | null>(null);
@@ -32,19 +37,25 @@ export function FoodTodayPage() {
   const [servingCounts, setServingCounts] = useState<Map<string, number>>(
     () => new Map()
   );
+  const [adhocMeals, setAdhocMeals] = useState<AdhocMeal[]>([]);
+  const [currentTotals, setCurrentTotals] =
+    useState<MacroTotals>(emptyMacroTotals());
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const [t, foods, counts] = await Promise.all([
-      getMacroTargets(),
+    const [macros, foods, counts, adhoc] = await Promise.all([
+      getMacroTotalsForDate(new Date()),
       listFoods(true),
       foodServingCountsForDate(new Date()),
+      listAdhocMealsForDate(new Date()).catch(() => [] as AdhocMeal[]),
     ]);
-    setTargets(t);
+    setTargets(macros.targets);
+    setCurrentTotals(macros.current);
     setPlanFoods(foods);
     setServingCounts(counts);
+    setAdhocMeals(adhoc);
   }, []);
 
   const planIds = useMemo(
@@ -89,14 +100,6 @@ export function FoodTodayPage() {
     () => planFoods.filter((f) => (servingCounts.get(f.id) ?? 0) > 0),
     [planFoods, servingCounts]
   );
-  const currentTotals = useMemo(() => {
-    const servings: Food[] = [];
-    for (const f of planFoods) {
-      const n = servingCounts.get(f.id) ?? 0;
-      for (let i = 0; i < n; i++) servings.push(f);
-    }
-    return sumFoodMacros(servings);
-  }, [planFoods, servingCounts]);
   const planTotals = useMemo(() => sumFoodMacros(planFoods), [planFoods]);
 
   async function onToggle(food: Food) {
@@ -104,7 +107,6 @@ export function FoodTodayPage() {
     const was = servings > 0;
     setBusyId(food.id);
     setError(null);
-    // optimistic: check → 1 serving; uncheck → clear all servings
     setServingCounts((prev) => {
       const next = new Map(prev);
       if (was) next.delete(food.id);
@@ -113,6 +115,7 @@ export function FoodTodayPage() {
     });
     try {
       await toggleFoodLog(food.id, was, new Date());
+      await refresh();
     } catch (e) {
       setServingCounts((prev) => {
         const next = new Map(prev);
@@ -169,8 +172,15 @@ export function FoodTodayPage() {
             <FoodSearchAdd
               className="mb-3"
               onPlanIds={planIds}
-              onAdded={onFoodAdded}
+              onAdded={async (food, meta) => {
+                await onFoodAdded(food, meta);
+                await refresh();
+              }}
             />
+
+            <div className="mb-4">
+              <AdhocMealForm meals={adhocMeals} onChanged={refresh} />
+            </div>
 
             {planFoods.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border px-4 py-10 text-center">

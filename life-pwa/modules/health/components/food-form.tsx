@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Loader2, Trash2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import type { Food } from "@/lib/schema";
+import { caloriesFromMacros, type Food } from "@/lib/schema";
 
 export type FoodFormValues = {
   name: string;
@@ -42,9 +42,6 @@ export function FoodForm({
   onDelete,
 }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
-  const [calories, setCalories] = useState(
-    initial != null ? String(initial.calories) : ""
-  );
   const [protein, setProtein] = useState(
     initial != null ? String(initial.protein_g) : ""
   );
@@ -58,18 +55,29 @@ export function FoodForm({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const p = Number(protein) || 0;
+  const c = Number(carbs) || 0;
+  const f = Number(fat) || 0;
+  const kcal = useMemo(
+    () => caloriesFromMacros(p, c, f),
+    [p, c, f]
+  );
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
     setError(null);
     try {
+      const protein_g = parseNonNeg(protein || "0", "Protein");
+      const carbs_g = parseNonNeg(carbs || "0", "Carbs");
+      const fat_g = parseNonNeg(fat || "0", "Fat");
       await onSubmit({
         name: name.trim(),
-        calories: parseNonNeg(calories || "0", "Calories"),
-        protein_g: parseNonNeg(protein || "0", "Protein"),
-        carbs_g: parseNonNeg(carbs || "0", "Carbs"),
-        fat_g: parseNonNeg(fat || "0", "Fat"),
+        calories: caloriesFromMacros(protein_g, carbs_g, fat_g),
+        protein_g,
+        carbs_g,
+        fat_g,
         notes: notes.trim(),
         on_plan: onPlan,
       });
@@ -112,21 +120,7 @@ export function FoodForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="food-kcal">Calories (kcal)</Label>
-          <Input
-            id="food-kcal"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="any"
-            value={calories}
-            onChange={(e) => setCalories(e.target.value)}
-            className="h-11"
-            placeholder="0"
-          />
-        </div>
+      <div className="grid grid-cols-3 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="food-p">Protein (g)</Label>
           <Input
@@ -169,6 +163,21 @@ export function FoodForm({
             placeholder="0"
           />
         </div>
+      </div>
+
+      <div className="rounded-xl border border-border/80 bg-muted/30 px-4 py-3">
+        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          Calories (auto)
+        </p>
+        <p className="mt-1 text-2xl font-bold tabular-nums tracking-tight">
+          {kcal}{" "}
+          <span className="text-base font-semibold text-muted-foreground">
+            kcal
+          </span>
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          From macros · 4×P + 4×C + 9×F
+        </p>
       </div>
 
       <div className="space-y-1.5">

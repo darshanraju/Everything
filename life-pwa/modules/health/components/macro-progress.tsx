@@ -50,10 +50,80 @@ function MacroBar({
 export function MacroProgress({
   targets,
   current,
+  compact = false,
 }: {
   targets: MacroTargets;
   current: MacroTotals;
+  /** Denser layout for dashboard / desktop Today */
+  compact?: boolean;
 }) {
+  if (compact) {
+    const cells: {
+      label: string;
+      unit: string;
+      current: number;
+      target: number;
+    }[] = [
+      {
+        label: "Cal",
+        unit: "",
+        current: current.calories,
+        target: targets.calories,
+      },
+      {
+        label: "P",
+        unit: "g",
+        current: current.protein_g,
+        target: targets.protein_g,
+      },
+      {
+        label: "C",
+        unit: "g",
+        current: current.carbs_g,
+        target: targets.carbs_g,
+      },
+      {
+        label: "F",
+        unit: "g",
+        current: current.fat_g,
+        target: targets.fat_g,
+      },
+    ];
+    return (
+      <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-border/60 bg-card/80 p-2">
+        {cells.map((c) => {
+          const pct =
+            c.target > 0
+              ? Math.min(150, Math.round((c.current / c.target) * 100))
+              : 0;
+          return (
+            <div key={c.label} className="min-w-0">
+              <div className="flex items-baseline justify-between gap-1 text-[10px] leading-tight">
+                <span className="font-semibold text-foreground/90">
+                  {c.label}
+                </span>
+                <span className="truncate tabular-nums text-muted-foreground">
+                  {Math.round(c.current)}
+                  {c.unit}/{Math.round(c.target)}
+                  {c.unit}
+                </span>
+              </div>
+              <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn(
+                    "h-full rounded-full",
+                    barTone(c.current, c.target)
+                  )}
+                  style={{ width: `${Math.min(100, pct)}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-border/80 bg-card p-4">
       <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
