@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { Check, ChevronRight, Loader2, Plus } from "lucide-react";
@@ -20,6 +20,14 @@ import {
   slaTone,
 } from "@/modules/today/sla";
 import { buttonVariants } from "@/components/ui/button";
+import { FoodSearchAdd } from "@/modules/health/components/food-search-add";
+import { MacroProgress } from "@/modules/health/components/macro-progress";
+import {
+  getMacroTotalsForDate,
+  logFoodForDate,
+} from "@/modules/health/lib/food";
+import type { MacroTargets, MacroTotals } from "@/lib/schema";
+import { emptyMacroTotals } from "@/lib/schema";
 
 export function TodayPage() {
   const [sections, setSections] = useState<TodaySection[]>([]);
@@ -29,16 +37,23 @@ export function TodayPage() {
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [macroTargets, setMacroTargets] = useState<MacroTargets | null>(null);
+  const [macroCurrent, setMacroCurrent] = useState<MacroTotals>(emptyMacroTotals());
 
   const refresh = useCallback(async () => {
-    const [s, report] = await Promise.all([
+    const [s, report, macros] = await Promise.all([
       loadTodaySections(new Date()),
       loadSlaReport(30).catch(() => null),
+      getMacroTotalsForDate(new Date()).catch(() => null),
     ]);
     setSections(s);
     setSla30(
       report ? formatSlaPercent(report.overall.rate) : null
     );
+    if (macros) {
+      setMacroTargets(macros.targets);
+      setMacroCurrent(macros.current);
+    }
   }, []);
 
   useEffect(() => {
@@ -49,6 +64,15 @@ export function TodayPage() {
 
   const pending = countPending(sections);
   const todayLabel = format(new Date(), "EEEE · d MMM yyyy");
+  const foodOnPlanIds = useMemo(() => {
+    const food = sections.find((s) => s.sourceKey === "food");
+    if (!food) return new Set<string>();
+    return new Set(
+      food.items
+        .map((i) => i.meta?.foodId as string | undefined)
+        .filter((id): id is string => Boolean(id))
+    );
+  }, [sections]);
   const slaToneClass =
     sla30 === null
       ? "text-muted-foreground"
@@ -151,8 +175,36 @@ export function TodayPage() {
               <h2 className="mb-2 text-xs font-bold tracking-wide text-muted-foreground uppercase">
                 {section.label}
               </h2>
+              {section.sourceKey === "food" && (
+                <>
+                  {macroTargets && (
+                    <div className="mb-3">
+                      <MacroProgress
+                        targets={macroTargets}
+                        current={macroCurrent}
+                      />
+                    </div>
+                  )}
+                  <FoodSearchAdd
+                    className="mb-3"
+                    onPlanIds={foodOnPlanIds}
+                    onAdded={async (food, meta) => {
+                      // Re-adding a food already on the list logs another serving
+                      if (meta.alreadyOnPlan) {
+                        await logFoodForDate(food.id, new Date());
+                      }
+                      await refresh();
+                    }}
+                    placeholder="Search foods to add today…"
+                  />
+                </>
+              )}
               {section.items.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nothing here.</p>
+                <p className="text-sm text-muted-foreground">
+                  {section.sourceKey === "food"
+                    ? "No foods on plan — search above to add."
+                    : "Nothing here."}
+                </p>
               ) : (
                 <ul className="flex flex-col gap-2">
                   {section.items.map((item) => {

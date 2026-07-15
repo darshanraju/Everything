@@ -17,6 +17,7 @@ Tabs are driven by `modules/registry.ts`. Add a new module by:
 | `fitness` | Fitness | Exercises, programs, weekly plan, **live workouts**, **history**, ghost sets, body weight (kg) |
 | `health` | Health | **Routine** · **Surgery** · **Food** (macro targets, food library, daily check-offs + SLA) |
 | `shared` | Shared | Link inbox: OS share → Life, or paste; title + tag (learning / fun / work / …) |
+| `notes` | Notes | Simple notepad for feature ideas |
 
 **Extending Today / SLA:** add `modules/<key>/today.ts` with `getItems` + optional `getDayScores`, then register in `modules/today/contributors.ts`. Overall SLA and charts pick up new sources automatically.
 
@@ -46,6 +47,8 @@ Tabs are driven by `modules/registry.ts`. Add a new module by:
    - [`supabase/migrations/009_surgeries.sql`](./supabase/migrations/009_surgeries.sql) — Surgery procedures
    - [`supabase/migrations/010_food_macros.sql`](./supabase/migrations/010_food_macros.sql) — Food macros + logs
    - [`supabase/migrations/011_protocol_schedule_weekdays.sql`](./supabase/migrations/011_protocol_schedule_weekdays.sql) — Weekly/custom protocol days
+   - [`supabase/migrations/012_food_logs_multi_serving.sql`](./supabase/migrations/012_food_logs_multi_serving.sql) — Multiple food servings per day
+   - [`supabase/migrations/013_notes.sql`](./supabase/migrations/013_notes.sql) — Notes notepad
 
 3. Expose schema **`life_hub`**: Project Settings → API → Exposed schemas.
 

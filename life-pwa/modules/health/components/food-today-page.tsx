@@ -9,6 +9,7 @@ import {
   MacroProgress,
   MacroTargetsSummary,
 } from "@/modules/health/components/macro-progress";
+import { FoodSearchAdd } from "@/modules/health/components/food-search-add";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -19,29 +20,58 @@ import {
 } from "@/lib/schema";
 import {
   listFoods,
-  loggedFoodIdsForDate,
+  foodServingCountsForDate,
   getMacroTargets,
+  logFoodForDate,
   toggleFoodLog,
 } from "@/modules/health/lib/food";
 
 export function FoodTodayPage() {
   const [targets, setTargets] = useState<MacroTargets | null>(null);
   const [planFoods, setPlanFoods] = useState<Food[]>([]);
-  const [loggedIds, setLoggedIds] = useState<Set<string>>(new Set());
+  const [servingCounts, setServingCounts] = useState<Map<string, number>>(
+    () => new Map()
+  );
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const [t, foods, logged] = await Promise.all([
+    const [t, foods, counts] = await Promise.all([
       getMacroTargets(),
       listFoods(true),
-      loggedFoodIdsForDate(new Date()),
+      foodServingCountsForDate(new Date()),
     ]);
     setTargets(t);
     setPlanFoods(foods);
-    setLoggedIds(logged);
+    setServingCounts(counts);
   }, []);
+
+  const planIds = useMemo(
+    () => new Set(planFoods.map((f) => f.id)),
+    [planFoods]
+  );
+
+  async function onFoodAdded(
+    food: Food,
+    meta: { alreadyOnPlan: boolean }
+  ) {
+    if (meta.alreadyOnPlan) {
+      // Same meal again → log another serving toward macros
+      await logFoodForDate(food.id, new Date());
+    }
+    setPlanFoods((prev) => {
+      if (prev.some((f) => f.id === food.id)) return prev;
+      return [...prev, food].sort((a, b) => a.name.localeCompare(b.name));
+    });
+    if (meta.alreadyOnPlan) {
+      setServingCounts((prev) => {
+        const next = new Map(prev);
+        next.set(food.id, (next.get(food.id) ?? 0) + 1);
+        return next;
+      });
+    }
+  }
 
   useEffect(() => {
     void refresh()
@@ -55,33 +85,38 @@ export function FoodTodayPage() {
       .finally(() => setLoading(false));
   }, [refresh]);
 
-  const eatenFoods = useMemo(
-    () => planFoods.filter((f) => loggedIds.has(f.id)),
-    [planFoods, loggedIds]
+  const foodsWithLogs = useMemo(
+    () => planFoods.filter((f) => (servingCounts.get(f.id) ?? 0) > 0),
+    [planFoods, servingCounts]
   );
-  const currentTotals = useMemo(
-    () => sumFoodMacros(eatenFoods),
-    [eatenFoods]
-  );
+  const currentTotals = useMemo(() => {
+    const servings: Food[] = [];
+    for (const f of planFoods) {
+      const n = servingCounts.get(f.id) ?? 0;
+      for (let i = 0; i < n; i++) servings.push(f);
+    }
+    return sumFoodMacros(servings);
+  }, [planFoods, servingCounts]);
   const planTotals = useMemo(() => sumFoodMacros(planFoods), [planFoods]);
 
   async function onToggle(food: Food) {
-    const was = loggedIds.has(food.id);
+    const servings = servingCounts.get(food.id) ?? 0;
+    const was = servings > 0;
     setBusyId(food.id);
     setError(null);
-    // optimistic
-    setLoggedIds((prev) => {
-      const next = new Set(prev);
+    // optimistic: check → 1 serving; uncheck → clear all servings
+    setServingCounts((prev) => {
+      const next = new Map(prev);
       if (was) next.delete(food.id);
-      else next.add(food.id);
+      else next.set(food.id, 1);
       return next;
     });
     try {
       await toggleFoodLog(food.id, was, new Date());
     } catch (e) {
-      setLoggedIds((prev) => {
-        const next = new Set(prev);
-        if (was) next.add(food.id);
+      setServingCounts((prev) => {
+        const next = new Map(prev);
+        if (was) next.set(food.id, servings);
         else next.delete(food.id);
         return next;
       });
@@ -127,15 +162,21 @@ export function FoodTodayPage() {
                 Today&apos;s plan
               </h2>
               <span className="text-xs tabular-nums text-muted-foreground">
-                {eatenFoods.length}/{planFoods.length} done
+                {foodsWithLogs.length}/{planFoods.length} done
               </span>
             </div>
 
+            <FoodSearchAdd
+              className="mb-3"
+              onPlanIds={planIds}
+              onAdded={onFoodAdded}
+            />
+
             {planFoods.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border px-4 py-10 text-center">
-                <p className="font-medium">No foods on your plan</p>
+                <p className="font-medium">No foods on your plan yet</p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Create foods with macros and mark them On plan.
+                  Search above to add from your library, or create a new food.
                 </p>
                 <Link
                   href="/health/food/library/new"
@@ -145,13 +186,14 @@ export function FoodTodayPage() {
                   )}
                 >
                   <Plus className="size-4" />
-                  Add food
+                  Create food
                 </Link>
               </div>
             ) : (
               <ul className="flex flex-col gap-2">
                 {planFoods.map((f) => {
-                  const done = loggedIds.has(f.id);
+                  const servings = servingCounts.get(f.id) ?? 0;
+                  const done = servings > 0;
                   return (
                     <li key={f.id}>
                       <button
@@ -187,9 +229,21 @@ export function FoodTodayPage() {
                             )}
                           >
                             {f.name}
+                            {servings > 1 && (
+                              <span className="ml-1.5 text-xs font-bold text-primary no-underline">
+                                ×{servings}
+                              </span>
+                            )}
                           </span>
                           <span className="mt-0.5 block text-xs text-muted-foreground">
-                            {formatFoodMacros(f)}
+                            {servings > 1
+                              ? formatFoodMacros({
+                                  calories: f.calories * servings,
+                                  protein_g: f.protein_g * servings,
+                                  carbs_g: f.carbs_g * servings,
+                                  fat_g: f.fat_g * servings,
+                                })
+                              : formatFoodMacros(f)}
                           </span>
                           {f.notes && (
                             <span className="mt-1 block text-xs text-muted-foreground/80">

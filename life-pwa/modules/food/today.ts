@@ -6,7 +6,7 @@ import type {
 import {
   listFoods,
   listFoodLogsBetween,
-  loggedFoodIdsForDate,
+  foodServingCountsForDate,
   toggleFoodLog,
 } from "@/modules/health/lib/food";
 import { formatFoodMacros } from "@/lib/schema";
@@ -15,7 +15,8 @@ import { format } from "date-fns";
 
 /**
  * Food → Today: each on-plan food until checked off that day.
- * SLA: completed / on-plan foods per day.
+ * Same food can be logged multiple times (servings) for macros.
+ * SLA: unique foods completed / on-plan foods per day.
  */
 export const foodTodayContributor: TodayContributor = {
   sourceKey: "food",
@@ -23,23 +24,34 @@ export const foodTodayContributor: TodayContributor = {
   enabled: true,
 
   async getItems(date: Date): Promise<TodayItem[]> {
-    const [foods, logged] = await Promise.all([
+    const [foods, counts] = await Promise.all([
       listFoods(true),
-      loggedFoodIdsForDate(date),
+      foodServingCountsForDate(date),
     ]);
 
     const items: TodayItem[] = foods.map((f, index) => {
-      const done = logged.has(f.id);
+      const servings = counts.get(f.id) ?? 0;
+      const done = servings > 0;
+      const unitMacros = formatFoodMacros(f);
+      const subtitle =
+        servings > 1
+          ? `${formatFoodMacros({
+              calories: f.calories * servings,
+              protein_g: f.protein_g * servings,
+              carbs_g: f.carbs_g * servings,
+              fat_g: f.fat_g * servings,
+            })} · ×${servings}`
+          : unitMacros;
       return {
         id: `food:item:${f.id}`,
         sourceKey: "food",
-        title: f.name,
-        subtitle: formatFoodMacros(f),
+        title: servings > 1 ? `${f.name} ×${servings}` : f.name,
+        subtitle,
         href: "/health/food",
         status: done ? "done" : "pending",
         sortOrder: index,
         completeAction: "toggle",
-        meta: { foodId: f.id, isDone: done },
+        meta: { foodId: f.id, isDone: done, servings },
       };
     });
 

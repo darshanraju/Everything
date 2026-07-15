@@ -327,6 +327,15 @@ export type SharedLink = {
   updated_at: string;
 };
 
+/** Personal notepad (feature ideas, etc.) */
+export type Note = {
+  id: string;
+  title: string;
+  body: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export const SHARED_LINK_TAGS: {
   value: SharedLinkTag;
   label: string;

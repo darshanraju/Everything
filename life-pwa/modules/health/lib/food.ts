@@ -1,5 +1,6 @@
 import { db } from "@/lib/supabase/client";
-import type { Food, FoodLog, MacroTargets } from "@/lib/schema";
+import type { Food, FoodLog, MacroTargets, MacroTotals } from "@/lib/schema";
+import { emptyMacroTotals, sumFoodMacros } from "@/lib/schema";
 import { format } from "date-fns";
 
 const DEFAULT_TARGETS = {
@@ -187,29 +188,43 @@ export async function listFoodLogsForDate(date: Date): Promise<FoodLog[]> {
   const { data, error } = await db()
     .from("food_logs")
     .select("*")
-    .eq("logged_on", day);
+    .eq("logged_on", day)
+    .order("created_at", { ascending: true });
   if (error) throw error;
   return (data ?? []).map((r) => mapLog(r as Record<string, unknown>));
 }
 
-/** food_id set logged on date */
+/** food_id set logged on date (unique foods, ignores multi-serving) */
 export async function loggedFoodIdsForDate(date: Date): Promise<Set<string>> {
   const logs = await listFoodLogsForDate(date);
   return new Set(logs.map((l) => l.food_id));
 }
 
+/** Servings per food_id for a date (same meal can be logged more than once) */
+export async function foodServingCountsForDate(
+  date: Date
+): Promise<Map<string, number>> {
+  const logs = await listFoodLogsForDate(date);
+  const counts = new Map<string, number>();
+  for (const log of logs) {
+    counts.set(log.food_id, (counts.get(log.food_id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/** Insert one serving log (allows multiple per food per day) */
 export async function logFoodForDate(
   foodId: string,
   date: Date = new Date()
 ): Promise<void> {
   const day = foodDateKey(date);
-  const { error } = await db().from("food_logs").upsert(
-    { food_id: foodId, logged_on: day },
-    { onConflict: "food_id,logged_on" }
-  );
+  const { error } = await db()
+    .from("food_logs")
+    .insert({ food_id: foodId, logged_on: day });
   if (error) throw error;
 }
 
+/** Remove all servings of a food for the date */
 export async function unlogFoodForDate(
   foodId: string,
   date: Date = new Date()
@@ -221,6 +236,26 @@ export async function unlogFoodForDate(
     .eq("food_id", foodId)
     .eq("logged_on", day);
   if (error) throw error;
+}
+
+/** Remove a single (most recent) serving of a food for the date */
+export async function unlogOneFoodForDate(
+  foodId: string,
+  date: Date = new Date()
+): Promise<void> {
+  const day = foodDateKey(date);
+  const { data, error } = await db()
+    .from("food_logs")
+    .select("id")
+    .eq("food_id", foodId)
+    .eq("logged_on", day)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  const id = data?.[0]?.id as string | undefined;
+  if (!id) return;
+  const { error: delErr } = await db().from("food_logs").delete().eq("id", id);
+  if (delErr) throw delErr;
 }
 
 export async function toggleFoodLog(
@@ -244,4 +279,26 @@ export async function listFoodLogsBetween(
     .lte("logged_on", toKey);
   if (error) throw error;
   return (data ?? []).map((r) => mapLog(r as Record<string, unknown>));
+}
+
+/** Sum macros of each logged serving for a day (multi-serving counts). */
+export async function getMacroTotalsForDate(
+  date: Date = new Date()
+): Promise<{
+  targets: MacroTargets;
+  current: MacroTotals;
+}> {
+  const [targets, logs, foods] = await Promise.all([
+    getMacroTargets(),
+    listFoodLogsForDate(date),
+    listFoods(false),
+  ]);
+  if (logs.length === 0) {
+    return { targets, current: emptyMacroTotals() };
+  }
+  const byId = new Map(foods.map((f) => [f.id, f]));
+  const eaten = logs
+    .map((l) => byId.get(l.food_id))
+    .filter((f): f is Food => Boolean(f));
+  return { targets, current: sumFoodMacros(eaten) };
 }

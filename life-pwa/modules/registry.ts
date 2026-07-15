@@ -4,10 +4,11 @@ import {
   CalendarDays,
   Dumbbell,
   HeartPulse,
+  StickyNote,
 } from "lucide-react";
 
 /** Stable keys for modules — add new keys here when extending Life. */
-export type ModuleKey = "today" | "fitness" | "health" | "shared";
+export type ModuleKey = "today" | "fitness" | "health" | "shared" | "notes";
 // Future: | "journal" | "finance"
 
 export type AppModule = {
@@ -19,15 +20,8 @@ export type AppModule = {
   description?: string;
 };
 
+/** Order = bottom tab order. Today is center with 5 tabs. */
 export const MODULES: AppModule[] = [
-  {
-    key: "today",
-    label: "Today",
-    href: "/today",
-    icon: CalendarDays,
-    enabled: true,
-    description: "Daily feed from all modules + your own tasks",
-  },
   {
     key: "fitness",
     label: "Fitness",
@@ -45,12 +39,28 @@ export const MODULES: AppModule[] = [
     description: "Meds, peptides, skincare, supplements",
   },
   {
+    key: "today",
+    label: "Today",
+    href: "/today",
+    icon: CalendarDays,
+    enabled: true,
+    description: "Daily feed from all modules + your own tasks",
+  },
+  {
     key: "shared",
     label: "Shared",
     href: "/shared",
     icon: Bookmark,
     enabled: true,
     description: "Links saved via share or paste",
+  },
+  {
+    key: "notes",
+    label: "Notes",
+    href: "/notes",
+    icon: StickyNote,
+    enabled: true,
+    description: "Feature ideas and scratchpad",
   },
 ];
 
