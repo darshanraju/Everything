@@ -102,14 +102,28 @@ export async function listTasksForDate(date: Date): Promise<ManualTodayTask[]> {
 }
 
 export async function createTodayTask(
-  title: string,
+  titleOrOpts:
+    | string
+    | {
+        title: string;
+        dueOn?: Date;
+        notes?: string | null;
+      },
   dueOn?: Date
 ): Promise<ManualTodayTask> {
+  const title =
+    typeof titleOrOpts === "string" ? titleOrOpts : titleOrOpts.title;
+  const due =
+    typeof titleOrOpts === "string" ? dueOn : titleOrOpts.dueOn;
+  const notes =
+    typeof titleOrOpts === "string" ? null : (titleOrOpts.notes ?? null);
+
   const { data, error } = await db()
     .from("today_tasks")
     .insert({
       title: title.trim(),
-      due_on: dateKey(dueOn ?? new Date()),
+      notes: notes?.trim() || null,
+      due_on: dateKey(due ?? new Date()),
       is_done: false,
       is_carry_stub: false,
     })

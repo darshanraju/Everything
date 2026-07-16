@@ -5,10 +5,17 @@ import {
   Dumbbell,
   HeartPulse,
   StickyNote,
+  Timer,
 } from "lucide-react";
 
 /** Stable keys for modules — add new keys here when extending Life. */
-export type ModuleKey = "today" | "fitness" | "health" | "shared" | "notes";
+export type ModuleKey =
+  | "today"
+  | "fitness"
+  | "health"
+  | "shared"
+  | "notes"
+  | "crons";
 // Future: | "journal" | "finance"
 
 export type AppModule = {
@@ -20,7 +27,7 @@ export type AppModule = {
   description?: string;
 };
 
-/** Order = bottom tab order. Today is center with 5 tabs. */
+/** Order = bottom tab order. Today is center. */
 export const MODULES: AppModule[] = [
   {
     key: "fitness",
@@ -61,6 +68,14 @@ export const MODULES: AppModule[] = [
     icon: StickyNote,
     enabled: true,
     description: "Feature ideas and scratchpad",
+  },
+  {
+    key: "crons",
+    label: "Crons",
+    href: "/crons",
+    icon: Timer,
+    enabled: true,
+    description: "Scheduled modular jobs",
   },
 ];
 

@@ -1,4 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/crons/run/heartbeat",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/crons/run/amazon-fresh-deals",
+      "schedule": "0 14 * * *"
+    }
+  ]
 }
