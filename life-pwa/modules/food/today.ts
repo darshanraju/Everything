@@ -14,9 +14,10 @@ import { dateKey, eachLocalDay } from "@/modules/today/dates";
 import { format } from "date-fns";
 
 /**
- * Food → Today: each on-plan food until checked off that day.
- * Same food can be logged multiple times (servings) for macros.
- * SLA: unique foods completed / on-plan foods per day.
+ * Food → Today: only foods actually logged (eaten) today.
+ * Add via search; same food can be logged multiple times (servings).
+ * Toggle removes today's log for that food.
+ * SLA: unique foods completed / on-plan foods per day (Health plan).
  */
 export const foodTodayContributor: TodayContributor = {
   sourceKey: "food",
@@ -24,14 +25,15 @@ export const foodTodayContributor: TodayContributor = {
   enabled: true,
 
   async getItems(date: Date): Promise<TodayItem[]> {
-    const [foods, counts] = await Promise.all([
-      listFoods(true),
-      foodServingCountsForDate(date),
-    ]);
+    const counts = await foodServingCountsForDate(date);
+    if (counts.size === 0) return [];
 
-    const items: TodayItem[] = foods.map((f, index) => {
+    const foods = await listFoods(false);
+    const items: TodayItem[] = [];
+
+    for (const f of foods) {
       const servings = counts.get(f.id) ?? 0;
-      const done = servings > 0;
+      if (servings === 0) continue;
       const unitMacros = formatFoodMacros(f);
       const subtitle =
         servings > 1
@@ -42,31 +44,28 @@ export const foodTodayContributor: TodayContributor = {
               fat_g: f.fat_g * servings,
             })} · ×${servings}`
           : unitMacros;
-      return {
+      items.push({
         id: `food:item:${f.id}`,
         sourceKey: "food",
         title: servings > 1 ? `${f.name} ×${servings}` : f.name,
         subtitle,
         href: "/health/food",
-        status: done ? "done" : "pending",
-        sortOrder: index,
+        status: "done",
+        sortOrder: items.length,
         completeAction: "toggle",
-        meta: { foodId: f.id, isDone: done, servings },
-      };
-    });
+        meta: { foodId: f.id, isDone: true, servings },
+      });
+    }
 
-    items.sort((a, b) => {
-      if (a.status !== b.status) return a.status === "pending" ? -1 : 1;
-      return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
-    });
+    items.sort((a, b) => a.title.localeCompare(b.title));
     return items;
   },
 
   async completeItem(item) {
     const foodId = item.meta?.foodId as string | undefined;
     if (!foodId) return;
-    const currentlyDone = item.status === "done";
-    await toggleFoodLog(foodId, currentlyDone, new Date());
+    // Only logged foods appear here — toggle always clears today's servings
+    await toggleFoodLog(foodId, true, new Date());
   },
 
   async getDayScores(from: Date, to: Date): Promise<DayScore[]> {

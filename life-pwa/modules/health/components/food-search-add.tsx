@@ -61,7 +61,8 @@ export function FoodSearchAdd({
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return allFoods.slice(0, 12);
+    // Searchable only — no full library dump on empty focus
+    if (!q) return [];
     return allFoods
       .filter(
         (f) =>
@@ -126,6 +127,10 @@ export function FoodSearchAdd({
           {allFoods.length === 0 ? (
             <li className="px-3 py-3 text-sm text-muted-foreground">
               No foods in library yet. Create one under Food → Library.
+            </li>
+          ) : !query.trim() ? (
+            <li className="px-3 py-3 text-sm text-muted-foreground">
+              Type to search your food library…
             </li>
           ) : matches.length === 0 ? (
             <li className="px-3 py-3 text-sm text-muted-foreground">

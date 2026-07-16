@@ -71,7 +71,8 @@ export function TodayPage() {
 
   const pending = countPending(sections);
   const todayLabel = format(new Date(), "EEEE · d MMM yyyy");
-  const foodOnPlanIds = useMemo(() => {
+  /** Foods already logged today (for “Add again” in search) */
+  const foodLoggedIds = useMemo(() => {
     const food = sections.find((s) => s.sourceKey === "food");
     if (!food) return new Set<string>();
     return new Set(
@@ -131,6 +132,7 @@ export function TodayPage() {
   return (
     <AppShell
       layout="desktop"
+      fillViewport
       title="Today"
       subtitle={`${todayLabel}${pending ? ` · ${pending} left` : " · All clear"}`}
       actions={
@@ -146,7 +148,7 @@ export function TodayPage() {
         </Link>
       }
     >
-      <form onSubmit={onAdd} className="mb-4 flex gap-2 lg:max-w-md">
+      <form onSubmit={onAdd} className="mb-3 flex shrink-0 gap-2 lg:max-w-md">
         <Input
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
@@ -165,7 +167,7 @@ export function TodayPage() {
       </form>
 
       {error && (
-        <p className="mb-3 text-sm text-destructive" role="alert">
+        <p className="mb-3 shrink-0 text-sm text-destructive" role="alert">
           {error}
         </p>
       )}
@@ -175,9 +177,13 @@ export function TodayPage() {
           <Loader2 className="size-4 animate-spin" /> Loading…
         </p>
       ) : (
-        <DesktopBoard>
+        <DesktopBoard className="min-h-0 flex-1 lg:auto-rows-[minmax(0,1fr)] lg:items-stretch xl:grid-cols-4">
           {sections.map((section) => (
-            <DesktopCard key={section.sourceKey} title={section.label}>
+            <DesktopCard
+              key={section.sourceKey}
+              title={section.label}
+              scrollBody
+            >
               {section.sourceKey === "food" && (
                 <div className="mb-2 space-y-2">
                   {macroTargets && (
@@ -188,11 +194,10 @@ export function TodayPage() {
                     />
                   )}
                   <FoodSearchAdd
-                    onPlanIds={foodOnPlanIds}
-                    onAdded={async (food, meta) => {
-                      if (meta.alreadyOnPlan) {
-                        await logFoodForDate(food.id, new Date());
-                      }
+                    onPlanIds={foodLoggedIds}
+                    onAdded={async (food) => {
+                      // Always log as eaten today (list only shows logged foods)
+                      await logFoodForDate(food.id, new Date());
                       await refresh();
                     }}
                     placeholder="Search foods…"
@@ -209,7 +214,7 @@ export function TodayPage() {
               !(section.sourceKey === "food" && adhocMeals.length > 0) ? (
                 <p className="text-xs text-muted-foreground">
                   {section.sourceKey === "food"
-                    ? "No plan foods — search or quick meal above."
+                    ? "Nothing logged yet — search to add what you ate."
                     : section.sourceKey === "manual"
                       ? "No todos yet — add above."
                       : "Nothing here."}
@@ -305,12 +310,25 @@ function TodayItemRow({
     </div>
   );
 
+  const isExternal = Boolean(item.href?.startsWith("http"));
+
   if (item.href && !canToggle) {
     return (
       <li>
-        <Link href={item.href} className="block">
-          {row}
-        </Link>
+        {isExternal ? (
+          <a
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block"
+          >
+            {row}
+          </a>
+        ) : (
+          <Link href={item.href} className="block">
+            {row}
+          </Link>
+        )}
       </li>
     );
   }
@@ -318,11 +336,21 @@ function TodayItemRow({
     return (
       <li className="relative">
         {row}
-        <Link
-          href={item.href}
-          className="absolute inset-y-0 right-0 w-8"
-          aria-label="Open details"
-        />
+        {isExternal ? (
+          <a
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute inset-y-0 right-0 w-8"
+            aria-label="Open details"
+          />
+        ) : (
+          <Link
+            href={item.href}
+            className="absolute inset-y-0 right-0 w-8"
+            aria-label="Open details"
+          />
+        )}
       </li>
     );
   }

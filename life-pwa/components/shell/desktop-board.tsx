@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Responsive board: stacked on phone, 2–3 columns on desktop.
+ * Responsive board: stacked on phone, multi-column on desktop.
  * Uses CSS grid (not columns) so every card stays visible.
  */
 export function DesktopBoard({
@@ -31,21 +31,30 @@ export function DesktopCard({
   children,
   className,
   actions,
+  /** Constrain height and scroll content (dashboard panels). */
+  scrollBody = false,
 }: {
   title?: string;
   children: React.ReactNode;
   className?: string;
   actions?: React.ReactNode;
+  scrollBody?: boolean;
 }) {
   return (
     <section
       className={cn(
         "rounded-xl border border-border/80 bg-card/60 p-3",
+        scrollBody && "flex min-h-0 flex-col overflow-hidden",
         className
       )}
     >
       {(title || actions) && (
-        <div className="mb-2 flex items-center justify-between gap-2">
+        <div
+          className={cn(
+            "mb-2 flex items-center justify-between gap-2",
+            scrollBody && "shrink-0"
+          )}
+        >
           {title ? (
             <h2 className="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
               {title}
@@ -56,7 +65,13 @@ export function DesktopCard({
           {actions}
         </div>
       )}
-      {children}
+      {scrollBody ? (
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {children}
+        </div>
+      ) : (
+        children
+      )}
     </section>
   );
 }

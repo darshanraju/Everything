@@ -14,18 +14,29 @@ export function AppShell({
    * desktop — widens on lg+ for multi-column boards
    */
   layout = "phone",
+  /**
+   * Dashboard mode: lock to viewport height on lg+ so content
+   * scrolls inside panels instead of the page.
+   */
+  fillViewport = false,
 }: {
   children: React.ReactNode;
   title?: string;
   subtitle?: string;
   actions?: React.ReactNode;
   layout?: ShellLayout;
+  fillViewport?: boolean;
 }) {
   const wide = layout === "desktop";
   const maxW = wide ? "max-w-lg lg:max-w-6xl" : "max-w-lg";
 
   return (
-    <div className="flex min-h-full flex-col pb-24">
+    <div
+      className={cn(
+        "flex min-h-full flex-col pb-24",
+        fillViewport && "lg:h-dvh lg:overflow-hidden"
+      )}
+    >
       <header className="sticky top-0 z-10 shrink-0 border-b border-border/60 bg-card/80 backdrop-blur-md">
         <div
           className={cn(
@@ -42,9 +53,20 @@ export function AppShell({
           {actions}
         </div>
       </header>
-      <main className={cn("mx-auto w-full flex-1 px-4 py-5", maxW)}>
+      <main
+        className={cn(
+          "mx-auto w-full flex-1 px-4 py-5",
+          maxW,
+          fillViewport && "flex min-h-0 flex-col lg:overflow-hidden lg:py-4"
+        )}
+      >
         {(title || subtitle) && (
-          <div className="mb-4 lg:mb-5">
+          <div
+            className={cn(
+              "mb-4 lg:mb-5",
+              fillViewport && "shrink-0 lg:mb-3"
+            )}
+          >
             {title && (
               <h1 className="text-2xl font-bold tracking-tight lg:text-xl">
                 {title}
@@ -55,7 +77,11 @@ export function AppShell({
             )}
           </div>
         )}
-        {children}
+        {fillViewport ? (
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        ) : (
+          children
+        )}
       </main>
       <ModuleTabs wide={wide} />
     </div>

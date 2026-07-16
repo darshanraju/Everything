@@ -7,12 +7,13 @@ import {
   listTasksForDate,
   toggleTodayTask,
 } from "@/modules/manual/lib/api";
+import { fetchTodayCalendarItems } from "@/modules/calendar/lib/client";
 import { db } from "@/lib/supabase/client";
 import { dateKey, eachLocalDay } from "@/modules/today/dates";
 import { format } from "date-fns";
 
 /**
- * Manual todos the user adds on Today.
+ * Manual todos the user adds on Today, plus live Google Calendar events.
  * Future modules do not go here — they get their own contributor file.
  */
 export const manualTodayContributor: TodayContributor = {
@@ -21,17 +22,23 @@ export const manualTodayContributor: TodayContributor = {
   enabled: true,
 
   async getItems(date: Date): Promise<TodayItem[]> {
-    const tasks = await listTasksForDate(date);
-    return tasks.map((t, index) => ({
+    const [tasks, calItems] = await Promise.all([
+      listTasksForDate(date),
+      fetchTodayCalendarItems(date),
+    ]);
+    const manualItems: TodayItem[] = tasks.map((t, index) => ({
       id: `manual:task:${t.id}`,
       sourceKey: "manual",
       title: t.title,
       subtitle: t.notes ?? undefined,
       status: t.is_done ? "done" : "pending",
-      sortOrder: index,
+      // After calendar items; keep relative order
+      sortOrder: 1_000_000 + index,
       completeAction: "toggle" as const,
       meta: { taskId: t.id, isDone: t.is_done },
     }));
+    // Calendar first (chronological), then manual todos
+    return [...calItems, ...manualItems];
   },
 
   async completeItem(item) {
