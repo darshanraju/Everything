@@ -1,6 +1,6 @@
 # Life (PWA)
 
-Modular personal app: **Fitness** · **Health** · **Today** · **Shared** · **Notes** · **Crons**.  
+Modular personal app: **Fitness** · **Health** · **Today** · **Shared** · **Notes**.  
 Dark mode · installable · shared Supabase schema `life_hub` · **no auth**.
 
 ## Modules
@@ -18,11 +18,8 @@ Tabs are driven by `modules/registry.ts`. Add a new module by:
 | `health` | Health | **Routine** · **Surgery** · **Food** (macro targets, food library, daily check-offs + SLA) |
 | `shared` | Shared | Link inbox: OS share → Life, or paste; title + tag (learning / fun / work / …) |
 | `notes` | Notes | Simple notepad for feature ideas |
-| `crons` | Crons | Modular scheduled jobs + run history (manual Run now + Vercel Cron) |
 
 **Extending Today / SLA:** add `modules/<key>/today.ts` with `getItems` + optional `getDayScores`, then register in `modules/today/contributors.ts`. Overall SLA and charts pick up new sources automatically.
-
-**Extending Crons:** add `modules/crons/jobs/<id>.ts` implementing `CronJob`, append to `CRON_JOBS` in `modules/crons/registry.ts`, optionally add a path under `vercel.json` → `crons`.
 
 **Shared / share target:** PWA manifest `share_target` → `/shared/new?title&text&url`. After deploy, reinstall the home-screen app so the manifest updates. Android Chrome is most reliable; on iOS use **Add** and paste.
 
@@ -54,7 +51,6 @@ Tabs are driven by `modules/registry.ts`. Add a new module by:
    - [`supabase/migrations/013_notes.sql`](./supabase/migrations/013_notes.sql) — Notes notepad
    - [`supabase/migrations/014_adhoc_meals.sql`](./supabase/migrations/014_adhoc_meals.sql) — Ad-hoc meal macros
    - [`supabase/migrations/015_today_task_carry_stub.sql`](./supabase/migrations/015_today_task_carry_stub.sql) — Incomplete todos roll to next day; stubs keep SLA history
-   - [`supabase/migrations/016_cron_runs.sql`](./supabase/migrations/016_cron_runs.sql) — Cron job run history
 
 3. Expose schema **`life_hub`**: Project Settings → API → Exposed schemas.
 
@@ -69,38 +65,8 @@ npm run dev
 ## Deploy (Vercel)
 
 - Root Directory: `life-pwa`  
-- Env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, optional `CRON_SECRET`  
+- Env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`  
 - Build uses webpack for PWA (`npm run build`)
-
-## Crons
-
-Tab **Crons** lists modular jobs from code (`modules/crons/registry.ts`). Phase 1 ships a **Heartbeat** smoke-test job.
-
-| Trigger | How |
-|---------|-----|
-| Manual | **Run** on the Crons page → `POST /api/crons/run/<jobId>` |
-| Schedule | Vercel Cron → `GET /api/crons/run/<jobId>` with `Authorization: Bearer $CRON_SECRET` |
-
-1. Run migration `016_cron_runs.sql`.
-2. Set `CRON_SECRET` in Vercel (and local if testing GET). Hobby plan usually allows **daily** schedules only.
-3. `vercel.json` already schedules heartbeat at `0 12 * * *` (12:00 UTC).
-
-Run history is stored in `life_hub.cron_runs`.
-
-### Amazon Fresh deals job
-
-Scans two Fresh list/search URLs for products **≥ 50% off**, adds them to **Today → Yours** (title + link in notes). Dedupes same product on re-run.
-
-```bash
-AMAZON_FRESH_URL_1=https://www.amazon.com/...
-AMAZON_FRESH_URL_2=https://www.amazon.com/...
-# AMAZON_FRESH_MIN_DISCOUNT_PCT=50
-# SCRAPINGBEE_API_KEY=   # optional if Amazon blocks plain fetch
-```
-
-- Schedule: daily **14:00 UTC** (~7am PT) via Vercel Cron  
-- Manual: Crons tab → **Run** on “Amazon Fresh deals”  
-- Fetch: plain browser-like `fetch` first, then ScrapingBee if key is set  
 
 ## Google Calendar (Today → Yours)
 
