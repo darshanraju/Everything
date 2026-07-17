@@ -1,9 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { format } from "date-fns";
-import { Check, ChevronRight, Loader2, Plus } from "lucide-react";
+import { addDays, format, startOfDay } from "date-fns";
+import {
+  CalendarClock,
+  Check,
+  ChevronRight,
+  Loader2,
+  Plus,
+} from "lucide-react";
 import { AppShell } from "@/components/shell/app-shell";
 import {
   DesktopBoard,
@@ -17,7 +23,11 @@ import {
   loadTodaySections,
 } from "@/modules/today/aggregate";
 import type { TodayItem, TodaySection } from "@/modules/today/types";
-import { createTodayTask } from "@/modules/manual/lib/api";
+import {
+  createTodayTask,
+  normalizeTaskLink,
+  rescheduleTodayTask,
+} from "@/modules/manual/lib/api";
 import {
   formatSlaPercent,
   loadSlaReport,
@@ -33,6 +43,7 @@ import {
 import type { AdhocMeal, MacroTargets, MacroTotals } from "@/lib/schema";
 import { emptyMacroTotals } from "@/lib/schema";
 import { AdhocMealForm } from "@/modules/health/components/adhoc-meal-form";
+import { AssistantBar } from "@/modules/today/components/assistant-bar";
 
 export function TodayPage() {
   const [sections, setSections] = useState<TodaySection[]>([]);
@@ -40,6 +51,7 @@ export function TodayPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
+  const [newLink, setNewLink] = useState("");
   const [adding, setAdding] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [macroTargets, setMacroTargets] = useState<MacroTargets | null>(null);
@@ -101,8 +113,12 @@ export function TodayPage() {
     setAdding(true);
     setError(null);
     try {
-      await createTodayTask(newTitle.trim());
+      await createTodayTask({
+        title: newTitle.trim(),
+        notes: normalizeTaskLink(newLink),
+      });
       setNewTitle("");
+      setNewLink("");
       await refresh();
     } catch (err) {
       setError(
@@ -129,6 +145,21 @@ export function TodayPage() {
     }
   }
 
+  async function onReschedule(item: TodayItem, dueOn: Date) {
+    const taskId = item.meta?.taskId as string | undefined;
+    if (!taskId) return;
+    setBusyId(item.id);
+    setError(null);
+    try {
+      await rescheduleTodayTask(taskId, dueOn);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reschedule");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <AppShell
       layout="desktop"
@@ -148,23 +179,40 @@ export function TodayPage() {
         </Link>
       }
     >
-      <form onSubmit={onAdd} className="mb-3 flex shrink-0 gap-2 lg:max-w-md">
+      <form
+        onSubmit={onAdd}
+        className="mb-3 flex shrink-0 flex-col gap-2 lg:max-w-lg"
+      >
+        <div className="flex gap-2">
+          <Input
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder="Add something for today…"
+            className="h-11 flex-1"
+            disabled={adding}
+          />
+          <Button
+            type="submit"
+            className="h-11 shrink-0 rounded-full"
+            disabled={adding || !newTitle.trim()}
+          >
+            {adding ? <Loader2 className="animate-spin" /> : <Plus />}
+            Add
+          </Button>
+        </div>
         <Input
-          value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
-          placeholder="Add something for today…"
-          className="h-11 flex-1"
+          type="url"
+          value={newLink}
+          onChange={(e) => setNewLink(e.target.value)}
+          placeholder="Optional link (https://…)"
+          className="h-9 text-sm"
           disabled={adding}
+          inputMode="url"
+          autoComplete="url"
         />
-        <Button
-          type="submit"
-          className="h-11 shrink-0 rounded-full"
-          disabled={adding || !newTitle.trim()}
-        >
-          {adding ? <Loader2 className="animate-spin" /> : <Plus />}
-          Add
-        </Button>
       </form>
+
+      <AssistantBar onApplied={refresh} />
 
       {error && (
         <p className="mb-3 shrink-0 text-sm text-destructive" role="alert">
@@ -227,6 +275,13 @@ export function TodayPage() {
                       item={item}
                       busy={busyId === item.id}
                       onToggle={() => void onToggle(section, item)}
+                      onReschedule={
+                        section.sourceKey === "manual" &&
+                        item.status === "pending" &&
+                        Boolean(item.meta?.taskId)
+                          ? (dueOn) => void onReschedule(item, dueOn)
+                          : undefined
+                      }
                     />
                   ))}
                 </ul>
@@ -239,14 +294,105 @@ export function TodayPage() {
   );
 }
 
+function DeferMenu({
+  disabled,
+  onPick,
+}: {
+  disabled?: boolean;
+  onPick: (dueOn: Date) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const dateRef = useRef<HTMLInputElement>(null);
+  const tomorrow = startOfDay(addDays(new Date(), 1));
+  const minDate = format(tomorrow, "yyyy-MM-dd");
+
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  const presets: { label: string; date: Date }[] = [
+    { label: "Tomorrow", date: tomorrow },
+    { label: "In 3 days", date: startOfDay(addDays(new Date(), 3)) },
+    { label: "Next week", date: startOfDay(addDays(new Date(), 7)) },
+  ];
+
+  return (
+    <div ref={rootRef} className="relative shrink-0">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+        className="mt-0.5 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+        aria-label="Push to a later day"
+        title="Push to a later day"
+      >
+        <CalendarClock className="size-3.5" />
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 z-30 mt-1 w-44 rounded-lg border border-border bg-card p-1.5 shadow-lg"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {presets.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              className="flex w-full rounded-md px-2 py-1.5 text-left text-xs font-medium hover:bg-muted"
+              onClick={() => {
+                setOpen(false);
+                onPick(p.date);
+              }}
+            >
+              {p.label}
+              <span className="ml-auto text-muted-foreground">
+                {format(p.date, "d MMM")}
+              </span>
+            </button>
+          ))}
+          <div className="mt-1 border-t border-border/60 pt-1.5">
+            <label className="px-2 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+              Pick date
+            </label>
+            <input
+              ref={dateRef}
+              type="date"
+              min={minDate}
+              className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
+              onChange={(e) => {
+                const v = e.target.value;
+                if (!v) return;
+                const d = startOfDay(new Date(`${v}T12:00:00`));
+                setOpen(false);
+                onPick(d);
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TodayItemRow({
   item,
   busy,
   onToggle,
+  onReschedule,
 }: {
   item: TodayItem;
   busy: boolean;
   onToggle: () => void;
+  onReschedule?: (dueOn: Date) => void;
 }) {
   const done = item.status === "done";
   const canToggle = item.completeAction === "toggle";
@@ -304,6 +450,9 @@ function TodayItemRow({
           </p>
         )}
       </div>
+      {onReschedule && (
+        <DeferMenu disabled={busy} onPick={onReschedule} />
+      )}
       {item.href && (
         <ChevronRight className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
       )}

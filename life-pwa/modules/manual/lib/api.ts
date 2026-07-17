@@ -32,6 +32,20 @@ export function dateKey(d: Date): string {
   return format(d, "yyyy-MM-dd");
 }
 
+/** Normalize optional link for storage in notes (adds https:// if needed). */
+export function normalizeTaskLink(raw: string | null | undefined): string | null {
+  const t = raw?.trim();
+  if (!t) return null;
+  if (/^https?:\/\//i.test(t)) return t;
+  // bare domain or path-like
+  if (/^[\w.-]+\.[a-z]{2,}([/:?#].*)?$/i.test(t)) return `https://${t}`;
+  return t;
+}
+
+export function isTaskLink(notes: string | null | undefined): boolean {
+  return Boolean(notes && /^https?:\/\//i.test(notes.trim()));
+}
+
 /**
  * Incomplete active tasks from past days move to `today`.
  * A carry stub stays on the old due_on (is_done=false) so SLA still
@@ -154,4 +168,30 @@ export async function toggleTodayTask(
 export async function deleteTodayTask(id: string): Promise<void> {
   const { error } = await db().from("today_tasks").delete().eq("id", id);
   if (error) throw error;
+}
+
+/**
+ * Move a manual todo to a future due date (intentional defer — no SLA stub).
+ */
+export async function rescheduleTodayTask(
+  id: string,
+  dueOn: Date
+): Promise<ManualTodayTask> {
+  const today = dateKey(new Date());
+  const next = dateKey(dueOn);
+  if (next <= today) {
+    throw new Error("Pick a date after today");
+  }
+  const { data, error } = await db()
+    .from("today_tasks")
+    .update({
+      due_on: next,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("is_carry_stub", false)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return mapTask(data as Record<string, unknown>);
 }

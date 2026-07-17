@@ -65,8 +65,26 @@ npm run dev
 ## Deploy (Vercel)
 
 - Root Directory: `life-pwa`  
-- Env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`  
+- Env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, optional `XAI_API_KEY`  
 - Build uses webpack for PWA (`npm run build`)
+
+## Today assistant (voice / text)
+
+On **Today**, use the **Ask Life** bar to type or speak commands. Grok (xAI) maps them to tools (add todo, complete health/food/todos).
+
+```bash
+# .env.local + Vercel (server-only — never NEXT_PUBLIC_)
+XAI_API_KEY=xai-...
+# optional model override
+# XAI_MODEL=grok-4.5
+```
+
+Examples:
+
+- “Add check my emails today”
+- “I just took my morning stack” → completes matching pending item (or asks confirm if ambiguous)
+
+**Mic:** click to start recording, click again to stop. Audio is transcribed with **xAI speech-to-text** (`POST /api/assistant/transcribe`) using the same `XAI_API_KEY` — more reliable than Chrome’s built-in speech API (which often fails with `Mic: network`). Text always works.
 
 ## Google Calendar (Today → Yours)
 

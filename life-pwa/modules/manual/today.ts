@@ -4,6 +4,7 @@ import type {
   TodayItem,
 } from "@/modules/today/types";
 import {
+  isTaskLink,
   listTasksForDate,
   toggleTodayTask,
 } from "@/modules/manual/lib/api";
@@ -26,17 +27,22 @@ export const manualTodayContributor: TodayContributor = {
       listTasksForDate(date),
       fetchTodayCalendarItems(date),
     ]);
-    const manualItems: TodayItem[] = tasks.map((t, index) => ({
-      id: `manual:task:${t.id}`,
-      sourceKey: "manual",
-      title: t.title,
-      subtitle: t.notes ?? undefined,
-      status: t.is_done ? "done" : "pending",
-      // After calendar items; keep relative order
-      sortOrder: 1_000_000 + index,
-      completeAction: "toggle" as const,
-      meta: { taskId: t.id, isDone: t.is_done },
-    }));
+    const manualItems: TodayItem[] = tasks.map((t, index) => {
+      const link = isTaskLink(t.notes) ? t.notes!.trim() : undefined;
+      return {
+        id: `manual:task:${t.id}`,
+        sourceKey: "manual",
+        title: t.title,
+        // Non-URL notes show as subtitle; URLs open via href
+        subtitle: t.notes && !link ? t.notes : link ? link : undefined,
+        href: link,
+        status: t.is_done ? "done" : "pending",
+        // After calendar items; keep relative order
+        sortOrder: 1_000_000 + index,
+        completeAction: "toggle" as const,
+        meta: { taskId: t.id, isDone: t.is_done },
+      };
+    });
     // Calendar first (chronological), then manual todos
     return [...calItems, ...manualItems];
   },
