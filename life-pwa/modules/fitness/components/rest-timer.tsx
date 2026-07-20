@@ -1,11 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Timer, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import {
+  armRestNotification,
+  cancelRestNotification,
+  ensureRestNotificationPermission,
+  notifyRestDoneForeground,
+} from "@/modules/fitness/lib/rest-notifications";
 
 const STORAGE_KEY = "life_rest_seconds";
 const DEFAULT_SECONDS = 90;
@@ -91,10 +97,16 @@ export function useRestTimer(): RestTimerApi {
   const [remaining, setRemaining] = useState(0);
   const [justDone, setJustDone] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const durationRef = useRef(DEFAULT_SECONDS);
+  const firedEndsAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     setSecondsPrefState(readPref());
   }, []);
+
+  useEffect(() => {
+    durationRef.current = duration;
+  }, [duration]);
 
   useEffect(() => {
     if (endsAt == null && !justDone) return;
@@ -102,16 +114,38 @@ export function useRestTimer(): RestTimerApi {
     return () => clearInterval(id);
   }, [endsAt, justDone]);
 
+  // Catch up when returning from background (tab may have been throttled)
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === "visible") {
+        setNow(Date.now());
+      }
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
+
   useEffect(() => {
     if (endsAt == null) return;
     const left = Math.max(0, (endsAt - now) / 1000);
     setRemaining(left);
     if (left <= 0) {
+      const finishedEndsAt = endsAt;
       setEndsAt(null);
       setRemaining(0);
       setJustDone(true);
-      vibrateDone();
-      beepDone();
+      // Cancel SW timer so we don't double-notify when the page is in the foreground
+      cancelRestNotification();
+      if (firedEndsAtRef.current !== finishedEndsAt) {
+        firedEndsAtRef.current = finishedEndsAt;
+        vibrateDone();
+        beepDone();
+        // If we were backgrounded, the SW may already have notified; tag replaces it.
+        // If SW never ran (dev / no SW), still show a system notification when possible.
+        if (document.visibilityState !== "visible") {
+          notifyRestDoneForeground(durationRef.current);
+        }
+      }
     }
   }, [endsAt, now]);
 
@@ -129,24 +163,37 @@ export function useRestTimer(): RestTimerApi {
 
   const start = useCallback(() => {
     const sec = readPref();
+    const end = Date.now() + sec * 1000;
     setSecondsPrefState(sec);
     setDuration(sec);
+    durationRef.current = sec;
     setJustDone(false);
-    setEndsAt(Date.now() + sec * 1000);
+    firedEndsAtRef.current = null;
+    setEndsAt(end);
     setRemaining(sec);
+    void ensureRestNotificationPermission().then((ok) => {
+      if (ok) armRestNotification(end, { durationSec: sec });
+    });
   }, []);
 
   const skip = useCallback(() => {
+    cancelRestNotification();
     setEndsAt(null);
     setRemaining(0);
     setJustDone(false);
+    firedEndsAtRef.current = null;
   }, []);
 
   const add = useCallback((seconds: number) => {
     setEndsAt((prev) => {
       if (prev == null) return prev;
       const next = prev + seconds * 1000;
-      setDuration((d) => d + seconds);
+      setDuration((d) => {
+        const nd = d + seconds;
+        durationRef.current = nd;
+        armRestNotification(next, { durationSec: nd });
+        return nd;
+      });
       return next;
     });
   }, []);
@@ -214,7 +261,9 @@ export function RestTimerSettingsButton({
                   Rest duration
                 </h2>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Starts when you tick a set complete
+                  Starts when you tick a set complete. Allow notifications so
+                  rest still alerts when the app is in the background (installed
+                  PWA / production).
                 </p>
               </div>
               <Button

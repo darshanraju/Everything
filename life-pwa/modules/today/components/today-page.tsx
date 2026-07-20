@@ -133,15 +133,74 @@ export function TodayPage() {
 
   async function onToggle(section: TodaySection, item: TodayItem) {
     if (item.completeAction !== "toggle" || !section.completeItem) return;
-    setBusyId(item.id);
+
+    const previousStatus = item.status;
+    const previousAction = item.completeAction;
+    const nextStatus = previousStatus === "done" ? "pending" : "done";
+    // Food list only shows logged foods; "toggle" removes the log → drop row
+    const removeFoodRow =
+      section.sourceKey === "food" && previousStatus === "done";
+
     setError(null);
+    // Optimistic UI — no spinner wait on the checkbox
+    setSections((prev) =>
+      prev.map((s) => {
+        if (s.sourceKey !== section.sourceKey) return s;
+        if (removeFoodRow) {
+          return {
+            ...s,
+            items: s.items.filter((i) => i.id !== item.id),
+          };
+        }
+        return {
+          ...s,
+          items: s.items.map((i) =>
+            i.id === item.id
+              ? {
+                  ...i,
+                  status: nextStatus,
+                  completeAction:
+                    s.sourceKey === "health" && nextStatus === "done"
+                      ? "none"
+                      : i.completeAction,
+                }
+              : i
+          ),
+        };
+      })
+    );
+
     try {
+      // Pass original item so completeItem can derive nextDone from prior status
       await section.completeItem(item);
-      await refresh();
+      // Reconcile macros / server truth without blocking the checkmark
+      void refresh().catch(() => {
+        /* keep optimistic UI */
+      });
     } catch (err) {
+      setSections((prev) =>
+        prev.map((s) => {
+          if (s.sourceKey !== section.sourceKey) return s;
+          if (removeFoodRow) {
+            // Put the food row back
+            if (s.items.some((i) => i.id === item.id)) return s;
+            return { ...s, items: [...s.items, item] };
+          }
+          return {
+            ...s,
+            items: s.items.map((i) =>
+              i.id === item.id
+                ? {
+                    ...i,
+                    status: previousStatus,
+                    completeAction: previousAction,
+                  }
+                : i
+            ),
+          };
+        })
+      );
       setError(err instanceof Error ? err.message : "Update failed");
-    } finally {
-      setBusyId(null);
     }
   }
 
@@ -225,7 +284,7 @@ export function TodayPage() {
           <Loader2 className="size-4 animate-spin" /> Loading…
         </p>
       ) : (
-        <DesktopBoard className="min-h-0 flex-1 lg:auto-rows-[minmax(0,1fr)] lg:items-stretch xl:grid-cols-4">
+        <DesktopBoard className="lg:min-h-0 lg:flex-1 lg:auto-rows-[minmax(0,1fr)] lg:items-stretch xl:grid-cols-4">
           {sections.map((section) => (
             <DesktopCard
               key={section.sourceKey}

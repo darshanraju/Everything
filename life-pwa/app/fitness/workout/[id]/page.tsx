@@ -125,25 +125,54 @@ export default function LiveWorkoutPage({
     });
   }
 
-  async function onToggleComplete(set: SessionSet) {
-    const next = !set.completed;
-    const updated = await updateSessionSet(set.id, { completed: next });
-    setSets((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
-
-    const exerciseSets = sets
-      .filter((s) => s.exercise_id === set.exercise_id)
-      .map((s) => (s.id === updated.id ? updated : s));
+  function applyExerciseCollapse(
+    exerciseId: string,
+    exerciseSets: SessionSet[]
+  ) {
     const allDone =
       exerciseSets.length > 0 && exerciseSets.every((s) => s.completed);
     setCollapsed((c) => {
       const nextCollapsed = new Set(c);
-      if (allDone) nextCollapsed.add(set.exercise_id);
-      else nextCollapsed.delete(set.exercise_id);
+      if (allDone) nextCollapsed.add(exerciseId);
+      else nextCollapsed.delete(exerciseId);
       return nextCollapsed;
     });
+  }
+
+  async function onToggleComplete(set: SessionSet) {
+    const next = !set.completed;
+    const previous = set.completed;
+
+    // Optimistic UI — update before network round-trip
+    setSets((prev) =>
+      prev.map((s) => (s.id === set.id ? { ...s, completed: next } : s))
+    );
+    const exerciseSetsOptimistic = sets
+      .filter((s) => s.exercise_id === set.exercise_id)
+      .map((s) => (s.id === set.id ? { ...s, completed: next } : s));
+    applyExerciseCollapse(set.exercise_id, exerciseSetsOptimistic);
 
     // Rest between sets: start only when marking complete
     if (next) restTimer.start();
+
+    try {
+      const updated = await updateSessionSet(set.id, { completed: next });
+      setSets((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+    } catch (e) {
+      // Roll back on failure
+      setSets((prev) =>
+        prev.map((s) =>
+          s.id === set.id ? { ...s, completed: previous } : s
+        )
+      );
+      const exerciseSetsRollback = sets
+        .filter((s) => s.exercise_id === set.exercise_id)
+        .map((s) =>
+          s.id === set.id ? { ...s, completed: previous } : s
+        );
+      applyExerciseCollapse(set.exercise_id, exerciseSetsRollback);
+      setError(e instanceof Error ? e.message : "Could not update set");
+    }
   }
 
   async function onPatch(

@@ -44,7 +44,8 @@ export function DesktopCard({
     <section
       className={cn(
         "rounded-xl border border-border/80 bg-card/60 p-3",
-        scrollBody && "flex min-h-0 flex-col overflow-hidden",
+        // Dashboard panel scroll only on lg+ so mobile can page-scroll
+        scrollBody && "lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden",
         className
       )}
     >
@@ -52,7 +53,7 @@ export function DesktopCard({
         <div
           className={cn(
             "mb-2 flex items-center justify-between gap-2",
-            scrollBody && "shrink-0"
+            scrollBody && "lg:shrink-0"
           )}
         >
           {title ? (
@@ -66,7 +67,7 @@ export function DesktopCard({
         </div>
       )}
       {scrollBody ? (
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
           {children}
         </div>
       ) : (

@@ -62,6 +62,8 @@ npm install
 npm run dev
 ```
 
+**Rest timer background alerts:** In production PWA builds, starting rest arms a service worker local notification (allow Notifications when prompted). Works best as an **installed** app on Android Chrome; iOS needs Add to Home Screen + permission. Dev (`next dev`) has no service worker, so background alerts only show after deploy/production build.
+
 ## Deploy (Vercel)
 
 - Root Directory: `life-pwa`  

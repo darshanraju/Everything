@@ -9,6 +9,8 @@ const withPWA = withPWAInit({
   dest: "public",
   disable: !isProd,
   register: true,
+  // Merges worker/index.js into generated SW (rest timer background notifications)
+  customWorkerSrc: "worker",
   fallbacks: {
     document: "/",
   },

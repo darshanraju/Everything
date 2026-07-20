@@ -57,7 +57,8 @@ export function AppShell({
         className={cn(
           "mx-auto w-full flex-1 px-4 py-5",
           maxW,
-          fillViewport && "flex min-h-0 flex-col lg:overflow-hidden lg:py-4"
+          // Dashboard height lock only from lg; mobile stays normal document scroll
+          fillViewport && "flex flex-col lg:min-h-0 lg:overflow-hidden lg:py-4"
         )}
       >
         {(title || subtitle) && (
@@ -78,7 +79,7 @@ export function AppShell({
           </div>
         )}
         {fillViewport ? (
-          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+          <div className="flex flex-1 flex-col lg:min-h-0">{children}</div>
         ) : (
           children
         )}
