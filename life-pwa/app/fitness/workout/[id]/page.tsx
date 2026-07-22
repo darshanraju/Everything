@@ -104,7 +104,7 @@ export default function LiveWorkoutPage({
       }
       byEx.get(s.exercise_id)!.push(s);
     }
-    return order.map((exerciseId) => {
+    const list = order.map((exerciseId) => {
       const group = byEx.get(exerciseId)!;
       return {
         exerciseId,
@@ -113,6 +113,15 @@ export default function LiveWorkoutPage({
         sets: group,
         ghosts: ghosts[exerciseId] ?? [],
       };
+    });
+    // Fully completed exercises pin to the top (stable among ties)
+    return list.sort((a, b) => {
+      const aDone =
+        a.sets.length > 0 && a.sets.every((s) => s.completed);
+      const bDone =
+        b.sets.length > 0 && b.sets.every((s) => s.completed);
+      if (aDone === bDone) return 0;
+      return aDone ? -1 : 1;
     });
   }, [sets, ghosts]);
 
@@ -140,52 +149,51 @@ export default function LiveWorkoutPage({
   }
 
   async function onToggleComplete(set: SessionSet) {
-    const next = !set.completed;
-    const previous = set.completed;
+    // Use latest local row (weight/reps typed in UI, not yet on server)
+    const latest = sets.find((s) => s.id === set.id) ?? set;
+    const next = !latest.completed;
+    const previous = { ...latest };
 
     // Optimistic UI — update before network round-trip
     setSets((prev) =>
-      prev.map((s) => (s.id === set.id ? { ...s, completed: next } : s))
+      prev.map((s) => (s.id === latest.id ? { ...s, completed: next } : s))
     );
     const exerciseSetsOptimistic = sets
-      .filter((s) => s.exercise_id === set.exercise_id)
-      .map((s) => (s.id === set.id ? { ...s, completed: next } : s));
-    applyExerciseCollapse(set.exercise_id, exerciseSetsOptimistic);
+      .filter((s) => s.exercise_id === latest.exercise_id)
+      .map((s) =>
+        s.id === latest.id ? { ...s, completed: next } : s
+      );
+    applyExerciseCollapse(latest.exercise_id, exerciseSetsOptimistic);
 
     // Rest between sets: start only when marking complete
     if (next) restTimer.start();
 
     try {
-      const updated = await updateSessionSet(set.id, { completed: next });
+      // Persist field values only when completing (not on input blur)
+      const updated = await updateSessionSet(
+        latest.id,
+        next
+          ? {
+              completed: true,
+              weight_kg: latest.weight_kg,
+              reps: latest.reps,
+              duration_seconds: latest.duration_seconds,
+              distance_km: latest.distance_km,
+            }
+          : { completed: false }
+      );
       setSets((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
     } catch (e) {
       // Roll back on failure
       setSets((prev) =>
-        prev.map((s) =>
-          s.id === set.id ? { ...s, completed: previous } : s
-        )
+        prev.map((s) => (s.id === previous.id ? previous : s))
       );
       const exerciseSetsRollback = sets
-        .filter((s) => s.exercise_id === set.exercise_id)
-        .map((s) =>
-          s.id === set.id ? { ...s, completed: previous } : s
-        );
-      applyExerciseCollapse(set.exercise_id, exerciseSetsRollback);
+        .filter((s) => s.exercise_id === previous.exercise_id)
+        .map((s) => (s.id === previous.id ? previous : s));
+      applyExerciseCollapse(previous.exercise_id, exerciseSetsRollback);
       setError(e instanceof Error ? e.message : "Could not update set");
     }
-  }
-
-  async function onPatch(
-    set: SessionSet,
-    patch: {
-      weight_kg?: number | null;
-      reps?: number | null;
-      duration_seconds?: number | null;
-      distance_km?: number | null;
-    }
-  ) {
-    const updated = await updateSessionSet(set.id, patch);
-    setSets((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
   }
 
   async function onAddSet(block: ExerciseBlock) {
@@ -427,15 +435,6 @@ export default function LiveWorkoutPage({
                                       )
                                     );
                                   }}
-                                  onBlur={(e) => {
-                                    const v = e.target.value;
-                                    void onPatch(set, {
-                                      duration_seconds:
-                                        v === ""
-                                          ? null
-                                          : Math.round(Number(v) * 60),
-                                    });
-                                  }}
                                 />
                                 <Input
                                   type="number"
@@ -461,13 +460,6 @@ export default function LiveWorkoutPage({
                                           : s
                                       )
                                     );
-                                  }}
-                                  onBlur={(e) => {
-                                    const v = e.target.value;
-                                    void onPatch(set, {
-                                      distance_km:
-                                        v === "" ? null : Number(v),
-                                    });
                                   }}
                                 />
                                 <Button
@@ -542,13 +534,6 @@ export default function LiveWorkoutPage({
                                       )
                                     );
                                   }}
-                                  onBlur={(e) => {
-                                    const v = e.target.value;
-                                    void onPatch(set, {
-                                      weight_kg:
-                                        v === "" ? null : Number(v),
-                                    });
-                                  }}
                                 />
                                 <Input
                                   type="number"
@@ -573,12 +558,6 @@ export default function LiveWorkoutPage({
                                           : s
                                       )
                                     );
-                                  }}
-                                  onBlur={(e) => {
-                                    const v = e.target.value;
-                                    void onPatch(set, {
-                                      reps: v === "" ? null : Number(v),
-                                    });
                                   }}
                                 />
                                 <Button
